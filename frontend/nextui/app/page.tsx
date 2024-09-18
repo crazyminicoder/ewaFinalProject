@@ -1,7 +1,6 @@
 "use client";
 
 import { Card, CardBody, CardFooter } from "@nextui-org/react";
-import { Image } from "@nextui-org/image"; // Ensure correct import for NextUI Image component
 import React from "react"; // Import React to ensure TypeScript works correctly
 
 type Item = {
@@ -55,31 +54,27 @@ export default function App(): JSX.Element {
   ];
 
   return (
-    <div className="overflow-y-auto"> {/* Ensure page is scrollable */}
-      {/* Banner Image */}
-      <div className="w-full h-[300px] mb-8 overflow-hidden"> {/* Set a fixed height for the image */}
-        <Image
-          src="https://images.unsplash.com/photo-1469285994282-454ceb49e63c?q=80&w=2942&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-          alt="Banner"
+    <div className="overflow-y-auto">
+      {/* Banner Video */}
+      <div className="w-full h-[500px] mb-8 overflow-hidden"> {/* Increase video height */}
+        <video
+          src="https://videos.pexels.com/video-files/5309381/5309381-hd_1920_1080_25fps.mp4"
           width="100%"
-          height="300px" 
-          radius="none"
-          shadow="lg"
-          style={{ objectFit: 'cover', maxHeight: '300px' }}
+          height="500px"  
+          muted
+          autoPlay
+          loop
+          style={{ objectFit: "cover", maxHeight: "500px" }}
         />
       </div>
 
       {/* Cards Grid */}
-      <div className="gap-2 grid grid-cols-2 sm:grid-cols-4">
-        {list.map((item, index) => (
+      <div className="gap-4 grid grid-cols-1 sm:grid-cols-3"> {/* Set to 3 cards per row */}
+        {list.slice(0, 6).map((item, index) => (  // Limit to 6 cards (2 rows of 3 cards)
           <Card shadow="sm" key={index} isPressable onPress={() => console.log("item pressed")}>
             <CardBody className="overflow-visible p-0">
-              <Image
-                shadow="sm"
-                radius="lg"
-                width="100%"
-                alt={item.title}
-                className="w-full object-cover h-[140px]"
+              <img
+                style={{ objectFit: "cover", width: "100%", height: "200px", borderRadius: "8px" }} 
                 src={item.img}
               />
             </CardBody>
