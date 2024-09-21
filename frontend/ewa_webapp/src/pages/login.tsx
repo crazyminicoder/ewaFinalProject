@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Banner from '../assets/Banner.jpg'; // Ensure the correct path to the banner image is used
+import Banner from '../assets/Banner.jpg'; 
 
-// Define the type for the form input states
 interface FormData {
   email: string;
   password: string;
@@ -10,16 +9,16 @@ interface FormData {
 
 const Login: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
-  const navigate = useNavigate(); // `useNavigate` for routing
+  const navigate = useNavigate(); 
 
-  // Handle login submission
+  
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     console.log('Logging in with:', formData);
     navigate('/dashboard');
   };
 
-  // Handle form input change
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -27,7 +26,7 @@ const Login: React.FC = () => {
   return (
     <div className="flex w-full h-screen">
       {/* Left Section (Login Form) */}
-      <div className="flex flex-col justify-center w-full md:w-2/5 px-12 bg-black text-white">
+      <div className="flex flex-col justify-center w-1/2 px-12 bg-black text-white">
         <h1 className="text-4xl font-bold mb-6">Welcome Back</h1>
         <p className="text-lg mb-8 text-gray-400">Log in to your account to continue</p>
 
@@ -59,12 +58,6 @@ const Login: React.FC = () => {
                 placeholder="Enter your password"
                 required
               />
-              <div className="absolute inset-y-0 right-4 flex items-center">
-                <button type="button" className="text-gray-400 focus:outline-none">
-                  {/* Add your password visibility toggle here if needed */}
-                  👁
-                </button>
-              </div>
             </div>
           </div>
 
@@ -81,10 +74,16 @@ const Login: React.FC = () => {
             Log In
           </button>
         </form>
+
+        {/* Links to Register and Home */}
+        <div className="mt-6 flex justify-between text-sm">
+          <a href="/register" className="text-blue-500 hover:underline">Don't have an account? Register</a>
+          <a href="/" className="text-blue-500 hover:underline">Back to Home</a>
+        </div>
       </div>
 
       {/* Right Section (Banner Image) */}
-      <div className="hidden md:flex w-3/5">
+      <div className="hidden md:flex w-1/2">
         <img
           src={Banner}
           alt="Banner"
