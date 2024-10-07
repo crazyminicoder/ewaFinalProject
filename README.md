@@ -45,6 +45,70 @@ public-hoist-pattern[]=*@nextui-org/*
 
 After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
 
-## License
+### Backend
 
-Licensed under the [MIT license](https://github.com/nextui-org/vite-template/blob/main/LICENSE).
+### Requirements
+
+- Node.js (v14.x or higher)
+- MySQL (v5.7 or higher)
+- npm (Node Package Manager)
+
+### Installation
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone <repository-url>
+   cd ewaFinalProject/backend
+   ```
+
+2. **Install Dependencies**
+
+   ```bash
+   npm install
+   ```
+
+3. **Database Configuration**
+
+   - Open the `config/database.js` file.
+   - Set your database credentials, including the database name, username, and password.
+
+   ```javascript
+   const { Sequelize } = require('sequelize');
+
+   const sequelize = new Sequelize('ewa', 'your_username', 'your_password', {
+     host: 'localhost',
+     dialect: 'mysql',
+   });
+
+   module.exports = sequelize;
+   ```
+
+4. **Create Database**
+
+   Create the MySQL database before running the application.
+
+   ```sql
+   CREATE DATABASE ewa;
+   ```
+
+5. **Run the Server**
+
+   ```bash
+   node index.js
+   ```
+
+   The server will start on port 3000. You should see a message indicating that the server is running and the database is synced.
+
+### Data Insert
+
+To insert data from a CSV file into the database, use the following command:
+
+```bash
+node insertData.js
+```
+
+This command will:
+- Drop the existing `cars` table if it exists.
+- Create a new `cars` table.
+- Read data from `temp_data/cars.csv` and insert it into the database.
