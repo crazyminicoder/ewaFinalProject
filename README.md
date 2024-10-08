@@ -78,6 +78,18 @@ npm run dev
    - Open the `config/config.js` file.
    - Set your database credentials, including the database name, username, and password in the development server.
 
+    ```javascript
+   {
+     "development": {
+    "username": "root",
+    "password": "password",
+    "database": "NextGenCars",
+    "host": "127.0.0.1",
+    "dialect": "mysql"
+      }
+   }
+  ```
+
 4. **Create Database**
 
    Create the MySQL database before running the application.
