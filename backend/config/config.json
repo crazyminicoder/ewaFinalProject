@@ -1,7 +1,7 @@
 {
   "development": {
     "username": "root",
-    "password": "s20j21fmm",
+    "password": "password",
     "database": "NextGenCars",
     "host": "127.0.0.1",
     "dialect": "mysql"
