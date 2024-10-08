@@ -75,6 +75,9 @@ npm run dev
    module.exports = sequelize;
    ```
 
+   - Open the `config/config.js` file.
+   - Set your database credentials, including the database name, username, and password in the development server.
+
 4. **Create Database**
 
    Create the MySQL database before running the application.
