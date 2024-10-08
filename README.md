@@ -88,7 +88,7 @@ npm run dev
     "dialect": "mysql"
       }
    }
-  ```
+   ```
 
 4. **Create Database**
 
