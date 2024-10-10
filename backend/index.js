@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('./models'); 
 const cors = require('cors');
 const carRoutes = require('./routes/carRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 app.use(cors());
@@ -15,6 +16,7 @@ const corsOptions = {
 
 app.use(express.json()); // For parsing application/json
 app.use('/api', carRoutes); // Use your routes with a base path
+app.use('/auth', authRoutes);
 
 db.sequelize.sync({ force: true }) 
   .then(() => {

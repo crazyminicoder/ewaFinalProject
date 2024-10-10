@@ -35,7 +35,6 @@ npm install
 npm run dev
 ```
 
-
 ## Backend
 
 ### Requirements
@@ -65,11 +64,11 @@ npm run dev
    - Set your database credentials, including the database name, username, and password.
 
    ```javascript
-   const { Sequelize } = require('sequelize');
+   const { Sequelize } = require("sequelize");
 
-   const sequelize = new Sequelize('ewa', 'your_username', 'your_password', {
-     host: 'localhost',
-     dialect: 'mysql',
+   const sequelize = new Sequelize("ewa", "your_username", "your_password", {
+     host: "localhost",
+     dialect: "mysql",
    });
 
    module.exports = sequelize;
@@ -78,15 +77,15 @@ npm run dev
    - Open the `config/config.js` file.
    - Set your database credentials, including the database name, username, and password in the development server.
 
-    ```javascript
+   ```javascript
    {
-     "development": {
-    "username": "root",
-    "password": "password",
-    "database": "NextGenCars",
-    "host": "127.0.0.1",
-    "dialect": "mysql"
-      }
+    "development": {
+   "username": "root",
+   "password": "password",
+   "database": "NextGenCars",
+   "host": "127.0.0.1",
+   "dialect": "mysql"
+     }
    }
    ```
 
@@ -115,6 +114,22 @@ node insertData.js
 ```
 
 This command will:
+
 - Drop the existing `cars` table if it exists.
 - Create a new `cars` table.
 - Read data from `temp_data/cars.csv` and insert it into the database.
+
+### Create Users table
+
+Run the following command to get the users table in the database:
+
+```bash
+npx sequelize-cli db:migrate
+```
+
+If for some reason the migrate command does not work use the following command:
+
+```bash
+npx sequelize-cli db:migrate:undo
+and re-run the migration command
+```
