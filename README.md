@@ -133,3 +133,8 @@ If for some reason the migrate command does not work use the following command:
 npx sequelize-cli db:migrate:undo
 and re-run the migration command
 ```
+
+Navigate to Index.js in backend
+Scroll down till you see the folloying line:
+'Authorization': `Bearer Your API Key`, // Replace with your actual API key dont remove Bearer
+Save the file and enjoy!

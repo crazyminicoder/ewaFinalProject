@@ -1,27 +1,41 @@
 import { Route, Routes } from "react-router-dom";
+import { Suspense, lazy } from "react";
+import DefaultLayout from "@/layouts/default";
+import LoadingSpinner from "@/components/LoadingSpinner";  // Now exists
 
-import IndexPage from "@/pages/index";
-import DocsPage from "@/pages/docs";
-import PricingPage from "@/pages/pricing";
-import BlogPage from "@/pages/blog";
-import AboutPage from "@/pages/about";
-import Login from "@/pages/login";
-import Register from "@/pages/register";
-import ModelsPage from "@/pages/models";
+// Lazy-loaded components
+const IndexPage = lazy(() => import("@/pages/index"));
+const DocsPage = lazy(() => import("@/pages/docs"));
+const PricingPage = lazy(() => import("@/pages/pricing"));
+const BlogPage = lazy(() => import("@/pages/blog"));
+const AboutPage = lazy(() => import("@/pages/about"));
+const Login = lazy(() => import("@/pages/login"));
+const Register = lazy(() => import("@/pages/register"));
+const ModelsPage = lazy(() => import("@/pages/models"));
+const NotFoundPage = lazy(() => import("@/pages/not-found"));  // Now exists
+const ChatBotPage = lazy(() => import("@/pages/chat-ai"));  // New ChatBotPage component
 
 function App() {
   return (
-    <Routes>
-      <Route element={<IndexPage />} path="/" />
-      <Route element={<DocsPage />} path="/docs" />
-      <Route path="/models" element={<ModelsPage />} />          
-      <Route path="/models/:make" element={<ModelsPage />} />   
-      <Route element={<PricingPage />} path="/pricing" />
-      <Route element={<BlogPage />} path="/blog" />
-      <Route element={<AboutPage />} path="/about" />
-      <Route element={<Login />} path="/login" />
-      <Route element={<Register />} path="/register" />
-    </Routes>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Wrap most routes with DefaultLayout */}
+          <Route path="/" element={<IndexPage />} />
+          <Route path="/docs" element={<DocsPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/blog" element={<BlogPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/models" element={<ModelsPage />} />
+          <Route path="/models/:make" element={<ModelsPage />} />
+          <Route path="/chat-ai" element={<ChatBotPage />} /> {/* New ChatBot route */}
+          <Route path="*" element={<NotFoundPage />} /> {/* Handle 404 Not Found */}
+      
+
+        {/* Authentication Routes (without DefaultLayout) */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+      </Routes>
+    </Suspense>
   );
 }
 
