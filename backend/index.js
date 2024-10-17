@@ -67,7 +67,7 @@ app.post('/api/chat', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          //'Authorization': `Bearer Your API Key`, // Replace with your actual API key dont remove Bearer remove the comment from this line
+          //add authorization here 
         },
       }
     );

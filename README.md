@@ -135,6 +135,7 @@ and re-run the migration command
 ```
 
 Navigate to Index.js in backend
-Scroll down till you see the folloying line:
+Scroll down till you see header line:
+add the following line
 'Authorization': `Bearer Your API Key`, // Replace with your actual API key dont remove Bearer
 Save the file and enjoy!
