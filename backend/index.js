@@ -67,7 +67,7 @@ app.post('/api/chat', async (req, res) => {
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer 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`, // Replace with your actual API key
+          //'Authorization': `Bearer Your API Key`, // Replace with your actual API key dont remove Bearer remove the comment from this line
         },
       }
     );
