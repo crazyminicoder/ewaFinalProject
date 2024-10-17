@@ -139,3 +139,4 @@ Scroll down till you see header line:
 add the following line
 'Authorization': `Bearer Your API Key`, // Replace with your actual API key dont remove Bearer
 Save the file and enjoy!
+
