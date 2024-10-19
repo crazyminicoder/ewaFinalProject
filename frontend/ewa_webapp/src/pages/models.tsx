@@ -73,8 +73,16 @@ export default function ModelsPage(): JSX.Element {
     const totalPagesByMake = Math.ceil(filteredByMake.length / itemsPerPage);
     const totalPagesByOtherMakes = Math.ceil(filteredByOtherMakes.length / itemsPerPage);
 
+    const formatPrice = (price: string) => {
+        // Remove the dollar sign if it's already part of the price string
+        const numericPrice = price.replace(/[^0-9.-]+/g, "");
+        const formattedPrice = new Intl.NumberFormat('en-US').format(parseFloat(numericPrice));
+        return `$${formattedPrice}`;  // Add the dollar sign back
+    };
+
     // Card component to reduce duplication
     const CarCard = ({ item }: { item: Car }) => (
+        
         <Card shadow="sm" isPressable onPress={() => console.log("Item clicked:", item.title)}>
             <CardBody className="p-0">
                 <img
@@ -87,7 +95,14 @@ export default function ModelsPage(): JSX.Element {
                 <p className="p-2 text-small">{item.description}</p>
             </CardBody>
             <CardFooter className="text-small justify-between">
-                <p className="text-default-500">{item.price}</p>
+            <p 
+                style={{ 
+                    color: "#E42638",  // The desired color
+                    fontSize: "1rem",  // Larger size (you can adjust this value)
+                }}
+            >
+                {formatPrice(item.price)}
+            </p>
             </CardFooter>
         </Card>
     );
