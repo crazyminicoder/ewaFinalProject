@@ -100,6 +100,23 @@ const BlurredCard = styled(Card)`
   border: 1px solid rgba(255, 255, 255, 0.1);
 `;
 
+// Keyframes for slower fade-in animation
+const fadeIn = keyframes`
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+`;
+
+// Make the fade-in slower by adjusting the duration (e.g., 3 seconds)
+const FadeInDiv = styled.div`
+  animation: ${fadeIn} ease 4s; /* 3s for slower fade-in */
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+`;
+
 const carLogos: { [key: string]: string } = {
     'KIA': kiaLogo,
     'Honda': hondaLogo,
@@ -122,6 +139,7 @@ export default function IndexPage() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Fetch car makes data
         const fetchData = async () => {
             try {
                 const response = await axios.get('http://localhost:3000/api/car-makes', {
@@ -155,81 +173,84 @@ export default function IndexPage() {
 
     return (
         <DefaultLayout>
-            {/* Video Banner */}
-            <div className="w-full h-[500px] mb-8 overflow-hidden">
-                <video
-                    src="https://videos.pexels.com/video-files/5309381/5309381-hd_1920_1080_25fps.mp4"
-                    width="100%"
-                    height="500px"
-                    muted
-                    autoPlay
-                    loop
-                    style={{ objectFit: "cover", maxHeight: "500px", borderRadius: "20px" }}
-                />
-            </div>
-
-            <div className="mb-8 relative overflow-hidden" style={{ height: '120px' }}>
-                <AnimatedBackground />
-                <FloatingElement />
-                <FloatingElement />
-                <FloatingElement />
-                <FloatingElement />
-                <Overlay />
-                <BlurredCard className="absolute inset-0 z-10">
-                    <CardBody className="p-6 text-center">
-                        <h2 className="text-2xl font-bold text-white">Explore the most popular car brands</h2>
-                        <p className="text-lg mt-2 text-gray-200">Get your dream car from our wide collection of car makes and models.</p>
-                    </CardBody>
-                </BlurredCard>
-            </div>
-
-            {/* Card Grid Section */}
-            {loading ? (
-                <div className="flex justify-center items-center h-40">
-                    <Spinner size="lg" />
+            <FadeInDiv>
+                {/* Video Banner */}
+                <div className="w-full h-[500px] mb-8 overflow-hidden">
+                    <video
+                        src="https://videos.pexels.com/video-files/5309381/5309381-hd_1920_1080_25fps.mp4"
+                        width="100%"
+                        height="500px"
+                        muted
+                        autoPlay
+                        loop
+                        style={{ objectFit: "cover", maxHeight: "500px", borderRadius: "20px" }}
+                    />
                 </div>
-            ) : error ? (
-                <div className="text-red-500 text-center">{error}</div>
-            ) : list.length === 0 ? (
-                <div className="text-center">No items found</div>
-            ) : (
-                <div className="mx-auto gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
-                    {list.map((item, index) => (
-                        <Card 
-                            key={index} 
-                            className="h-[220px] relative flex flex-col justify-center items-center rounded-[30px]"  
-                            isPressable  
-                            onPress={() => handleCardClick(item.title)} 
-                            style={{
-                                borderRadius: '30px', 
-                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)', 
-                                overflow: 'hidden',
-                                transition: 'transform 0.8s', 
-                            }}
-                            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}  
-                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')} 
-                        >
-                            <div className="flex justify-center items-center h-full">
-                                <div
-                                    style={{
-                                        width: "100px",
-                                        height: "100px",
-                                        background: `linear-gradient(90deg, #f2123b, #f23125, #f3446c)`,
-                                        WebkitMaskImage: `url(${carLogos[item.title] || '/path/to/default-image.svg'})`,
-                                        WebkitMaskSize: 'contain',
-                                        WebkitMaskRepeat: 'no-repeat',
-                                        WebkitMaskPosition: 'center',
-                                        maskImage: `url(${carLogos[item.title] || '/path/to/default-image.svg'})`,
-                                        maskSize: 'contain',
-                                        maskRepeat: 'no-repeat',
-                                        maskPosition: 'center',
-                                    }}
-                                />
-                            </div>
-                        </Card>
-                    ))}
+
+                {/* Floating Elements Section */}
+                <div className="mb-8 relative overflow-hidden" style={{ height: '120px' }}>
+                    <AnimatedBackground />
+                    <FloatingElement />
+                    <FloatingElement />
+                    <FloatingElement />
+                    <FloatingElement />
+                    <Overlay />
+                    <BlurredCard className="absolute inset-0 z-10">
+                        <CardBody className="p-6 text-center">
+                            <h2 className="text-2xl font-bold text-white">Explore the most popular car brands</h2>
+                            <p className="text-lg mt-2 text-gray-200">Get your dream car from our wide collection of car makes and models.</p>
+                        </CardBody>
+                    </BlurredCard>
                 </div>
-            )}
+
+                {/* Card Grid Section */}
+                {loading ? (
+                    <div className="flex justify-center items-center h-40">
+                        <Spinner size="lg" />
+                    </div>
+                ) : error ? (
+                    <div className="text-red-500 text-center">{error}</div>
+                ) : list.length === 0 ? (
+                    <div className="text-center">No items found</div>
+                ) : (
+                    <div className="mx-auto gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                        {list.map((item, index) => (
+                            <Card 
+                                key={index} 
+                                className="h-[220px] relative flex flex-col justify-center items-center rounded-[30px]"  
+                                isPressable  
+                                onPress={() => handleCardClick(item.title)} 
+                                style={{
+                                    borderRadius: '30px', 
+                                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)', 
+                                    overflow: 'hidden',
+                                    transition: 'transform 0.8s', 
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.05)')}  
+                                onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')} 
+                            >
+                                <div className="flex justify-center items-center h-full">
+                                    <div
+                                        style={{
+                                            width: "100px",
+                                            height: "100px",
+                                            background: `linear-gradient(90deg, #f2123b, #f23125, #f3446c)`,
+                                            WebkitMaskImage: `url(${carLogos[item.title] || '/path/to/default-image.svg'})`,
+                                            WebkitMaskSize: 'contain',
+                                            WebkitMaskRepeat: 'no-repeat',
+                                            WebkitMaskPosition: 'center',
+                                            maskImage: `url(${carLogos[item.title] || '/path/to/default-image.svg'})`,
+                                            maskSize: 'contain',
+                                            maskRepeat: 'no-repeat',
+                                            maskPosition: 'center',
+                                        }}
+                                    />
+                                </div>
+                            </Card>
+                        ))}
+                    </div>
+                )}
+            </FadeInDiv>
         </DefaultLayout>
     );
 }

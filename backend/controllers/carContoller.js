@@ -1,4 +1,5 @@
 const Car = require('../models/cars'); 
+const { Op } = require('sequelize');  // Import Sequelize operators
 
 exports.getAllCars = async (req, res) => {
     try {
@@ -20,6 +21,7 @@ exports.getAllCars = async (req, res) => {
             title: `${car.make} ${car.model}`, 
             img: car.imageUrl, 
             price: `$${car.price}`,
+            trim: car.trim || "No trim available",
             description: car.features || "No description available" 
         }));
 
