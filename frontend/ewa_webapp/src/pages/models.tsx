@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardBody, CardFooter, Pagination, Input, Skeleton } from "@nextui-org/react"; 
 import DefaultLayout from "@/layouts/default";
 import axios from 'axios';
@@ -21,6 +21,7 @@ export default function ModelsPage(): JSX.Element {
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [currentMakePage, setCurrentMakePage] = useState<number>(1);
     const [currentOtherPage, setCurrentOtherPage] = useState<number>(1);
+    const navigate = useNavigate();
     const itemsPerPage = 6;
 
     useEffect(() => {
