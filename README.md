@@ -121,7 +121,7 @@ This command will:
 
 ### Create Users table
 
-Run the following command to get the users table in the database:
+Run the following command to get the users & order tables in the database:
 
 ```bash
 npx sequelize-cli db:migrate

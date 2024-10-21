@@ -95,6 +95,7 @@ app.post('/api/chat', async (req, res) => {
 // Routes for cars and authentication
 app.use('/api', carRoutes); // Car-related routes
 app.use('/auth', authRoutes); // Authentication-related routes
+//app.use('/api', orderRoutes); // Use the order routes
 
 // Database Sync
 db.sequelize.sync({ force: false }) // Set force: false to avoid dropping tables in production

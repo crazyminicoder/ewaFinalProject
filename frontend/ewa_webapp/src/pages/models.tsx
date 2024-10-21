@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
-import { Card, CardBody, CardFooter, Pagination, Input, Skeleton } from "@nextui-org/react"; 
+import { Card, CardBody, CardFooter, Pagination, Input, Skeleton, Button } from "@nextui-org/react";
 import DefaultLayout from "@/layouts/default";
 import axios from 'axios';
 
@@ -17,11 +17,10 @@ export default function ModelsPage(): JSX.Element {
     const [models, setModels] = useState<Car[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     const [searchQuery, setSearchQuery] = useState<string>("");
     const [currentMakePage, setCurrentMakePage] = useState<number>(1);
     const [currentOtherPage, setCurrentOtherPage] = useState<number>(1);
-    const navigate = useNavigate();
     const itemsPerPage = 6;
 
     useEffect(() => {
@@ -54,20 +53,20 @@ export default function ModelsPage(): JSX.Element {
     }, [make]);
 
     // Filter arrays
-    const filteredByMake = models.filter(model => 
-        model.title.toLowerCase().includes(make?.toLowerCase() || "") && 
+    const filteredByMake = models.filter(model =>
+        model.title.toLowerCase().includes(make?.toLowerCase() || "") &&
         model.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
-    
-    const filteredByOtherMakes = models.filter(model => 
-        !model.title.toLowerCase().includes(make?.toLowerCase() || "") && 
+
+    const filteredByOtherMakes = models.filter(model =>
+        !model.title.toLowerCase().includes(make?.toLowerCase() || "") &&
         model.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Separate pagination for each section
     const makeStartIndex = (currentMakePage - 1) * itemsPerPage;
     const otherStartIndex = (currentOtherPage - 1) * itemsPerPage;
-    
+
     const currentItemsByMake = filteredByMake.slice(makeStartIndex, makeStartIndex + itemsPerPage);
     const currentItemsByOtherMakes = filteredByOtherMakes.slice(otherStartIndex, otherStartIndex + itemsPerPage);
 
@@ -81,32 +80,35 @@ export default function ModelsPage(): JSX.Element {
         return `$${formattedPrice}`;  // Add the dollar sign back
     };
 
-    // Card component to reduce duplication
-    const CarCard = ({ item }: { item: Car }) => (
-        
-        <Card shadow="sm" isPressable onPress={() => console.log("Item clicked:", item.title)}>
-            <CardBody className="p-0">
-                <img
-                    style={{ objectFit: "cover", width: "100%", height: "200px", borderRadius: "8px" }}
-                    src={item.img}
-                    alt={item.title}
-                />
-                <h3 className="p-2 text-lg font-semibold">{item.title}</h3>
-                <p className="p-2 text-small text-default-500">{item.trim || "No trim available"}</p> {/* Display trim */}
-                <p className="p-2 text-small">{item.description}</p>
-            </CardBody>
-            <CardFooter className="text-small justify-between">
-            <p 
-                style={{ 
-                    color: "#E42638",  // The desired color
-                    fontSize: "1rem",  // Larger size (you can adjust this value)
-                }}
-            >
-                {formatPrice(item.price)}
-            </p>
-            </CardFooter>
-        </Card>
-    );
+    const CarCard: React.FC<{ item: Car }> = ({ item }) => {
+        const navigate = useNavigate();
+
+        const handleCardClick = () => {
+            navigate(`/car/${item.title}`, { state: { car: item } }); // Pass the car object via state
+        };
+
+        return (
+            <Card shadow="sm" isPressable onPress={handleCardClick}>
+                <CardBody className="p-0">
+                    <img
+                        style={{ objectFit: "cover", width: "100%", height: "200px", borderRadius: "8px" }}
+                        src={item.img}
+                        alt={item.title}
+                    />
+                    <h3 className="p-2 text-lg font-semibold">{item.title}</h3>
+                    <p className="p-2 text-small text-default-500">
+                        {item.trim || "No trim available"}
+                    </p>
+                    <p className="p-2 text-small">{item.description}</p>
+                </CardBody>
+                <CardFooter className="text-small justify-between">
+                    <p style={{ color: "#E42638", fontSize: "1rem" }}>
+                        {formatPrice(item.price)}
+                    </p>
+                </CardFooter>
+            </Card>
+        );
+    };
 
     // Skeleton loading component
     const SkeletonCard = () => (

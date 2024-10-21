@@ -13,14 +13,34 @@ import { link as linkStyles } from "@nextui-org/theme";
 import clsx from "clsx";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Logo } from "@/components/icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Chat from "@/components/chat"; // Import the Chat component
 
 export const Navbar = () => {
   const [isChatOpen, setIsChatOpen] = useState(false); // State to toggle the chat visibility
+  const [cartCount, setCartCount] = useState<number>(0); // State to track cart count
+  
   const toggleChat = () => {
     setIsChatOpen(!isChatOpen); // Toggle chat on button click
   };
+
+  // Update the cart count from localStorage
+  useEffect(() => {
+    const updateCartCount = () => {
+      const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
+      setCartCount(cartItems.length);
+    };
+
+    updateCartCount();
+
+    // Add an event listener to update the cart count when localStorage changes
+    window.addEventListener("storage", updateCartCount);
+
+    // Cleanup the event listener
+    return () => {
+      window.removeEventListener("storage", updateCartCount);
+    };
+  }, []);
 
   return (
     <>
@@ -72,6 +92,11 @@ export const Navbar = () => {
                 href="/cart"
               >
                 Cart
+                {cartCount > 0 && (
+                  <span className="ml-2 bg-red-500 text-white rounded-full px-2 py-1 text-xs">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             </NavbarItem>
           </div>
@@ -121,6 +146,11 @@ export const Navbar = () => {
             <NavbarMenuItem>
               <Link color="foreground" href="/cart" size="lg">
                 Cart
+                {cartCount > 0 && (
+                  <span className="ml-2 bg-red-500 text-white rounded-full px-2 py-1 text-xs">
+                    {cartCount}
+                  </span>
+                )}
               </Link>
             </NavbarMenuItem>
           </div>

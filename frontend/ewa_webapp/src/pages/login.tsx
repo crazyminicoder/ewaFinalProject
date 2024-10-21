@@ -9,6 +9,25 @@ interface FormData {
   password: string;
 }
 
+// Helper function to decode JWT token
+function decodeToken(token: string): { id: number; email: string } | null {
+  try {
+      const base64Url = token.split('.')[1]; // Get the payload part of the token
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+          atob(base64)
+              .split('')
+              .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+              .join('')
+      );
+
+      return JSON.parse(jsonPayload); // Convert the JSON string into an object
+  } catch (error) {
+      console.error('Invalid token:', error);
+      return null;
+  }
+}
+
 const Login: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({ email: '', password: '' });
   const navigate = useNavigate(); 
@@ -29,8 +48,17 @@ const Login: React.FC = () => {
       });
 
       const data = await response.json();
+      console.log("login data = ",data)
 
       if (response.ok) {
+        const decodedToken = decodeToken(data.token);
+            if (decodedToken) {
+                localStorage.setItem('userId', decodedToken.id.toString()); // Store userId in localStorage
+                alert('Login successful!');
+                // Navigate to a different page or dashboard
+            } else {
+                alert('Failed to decode token.');
+          }
         localStorage.setItem('token', data.token); // Store token for authenticated routes
         toast.success('Welcome back, champion. Time to conquer!', { theme: "dark", position: "top-center" });
         setTimeout(() => navigate('/'), 3000); // Redirect to the dashboard after 3 seconds

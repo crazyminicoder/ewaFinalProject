@@ -1,5 +1,5 @@
 const Car = require('../models/cars'); 
-const { Op } = require('sequelize');  // Import Sequelize operators
+const Order = require('../models/order');
 
 exports.getAllCars = async (req, res) => {
     try {
@@ -52,3 +52,23 @@ exports.getCarMakes = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+exports.placeOrder = async (req, res) => {
+    const { userId, carId, totalPrice, status = 'pending' } = req.body; // Extract required fields from the request
+
+    try {
+        // Create a new order with the provided data
+        const order = await Order.create({
+            userId,
+            carId,
+            status,
+            totalPrice,
+        });
+
+        res.status(201).json({ message: 'Order placed successfully', order });
+    } catch (error) {
+        console.error('Error placing order:', error);
+        res.status(500).json({ message: 'Failed to place order' });
+    }
+};
+

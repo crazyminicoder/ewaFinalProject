@@ -8,6 +8,8 @@ import AboutPage from "@/pages/about";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
 import ModelsPage from "@/pages/models";
+import CarDetailPage from "@/pages/cardetailpage";
+import CartPage from "@/pages/cartpage";
 
 function App() {
   return (
@@ -16,6 +18,8 @@ function App() {
       <Route element={<DocsPage />} path="/docs" />
       <Route path="/models" element={<ModelsPage />} />          
       <Route path="/models/:make" element={<ModelsPage />} />   
+      <Route path="/car/:title" element={<CarDetailPage />} />
+      <Route path="/cart" element={<CartPage />} />
       <Route element={<PricingPage />} path="/pricing" />
       <Route element={<BlogPage />} path="/blog" />
       <Route element={<AboutPage />} path="/about" />
