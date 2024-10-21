@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
-import { Card, CardBody, CardFooter, Pagination, Input, Skeleton, Button } from "@nextui-org/react";
+import { Card, CardBody, CardFooter, Pagination, Input, Skeleton } from "@nextui-org/react";
 import DefaultLayout from "@/layouts/default";
 import axios from 'axios';
 
@@ -9,8 +9,16 @@ type Car = {
     img: string;
     price: string;
     description: string;
-    trim: string; // Added trim field
+    trim: string;
+    year: number;
+    engineType: string;
+    horsepower: string;
+    transmission: string;
+    fuelEfficiency: string;
+    seatingCapacity: number;
+    colors: string;
 };
+
 
 export default function ModelsPage(): JSX.Element {
     const { make } = useParams<{ make: string }>();

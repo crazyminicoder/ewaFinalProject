@@ -22,7 +22,14 @@ exports.getAllCars = async (req, res) => {
             img: car.imageUrl, 
             price: `$${car.price}`,
             trim: car.trim || "No trim available",
-            description: car.features || "No description available" 
+            description: car.features || "No description available",
+            year: car.year,
+            engineType: car.engineType || "N/A",
+            horsepower: car.horsepower || "N/A",
+            transmission: car.transmission || "N/A",
+            fuelEfficiency: car.fuelEfficiency || "N/A",
+            seatingCapacity: car.seatingCapacity || "N/A",
+            colors: car.colors || "N/A"
         }));
 
         res.setHeader('Content-Type', 'application/json');
