@@ -5,7 +5,7 @@ import { MdOutlinePriceCheck, MdOutlineElectricCar, MdLocalGasStation, MdAirline
 import { toast, ToastContainer } from "react-toastify";
 
 type Car = {
-    id: number,
+    id: number;
     title: string;
     img: string;
     price: string;

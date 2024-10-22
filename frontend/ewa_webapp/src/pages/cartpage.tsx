@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 
 
 type Car = {
+    id: string;
     title: string;
     img: string;
     price: string;
@@ -107,13 +108,17 @@ export default function CartPage(): JSX.Element {
             }
         }
     
-        const userId = localStorage.getItem('userId');
+        const userId = parseInt(localStorage.getItem('userId') || '0'); // Ensure userId is an integer
+    
+        // Prepare order items
+        const items = cartItems.map((item) => ({
+            carId: parseInt(item.id), // Ensure carId is an integer
+            totalPrice: parseFloat(item.price.replace(/[^0-9.-]+/g, "")), // Parse price to float
+        }));
+    
         const orderDetails = {
-            items: cartItems.map((item) => ({
-                carId: parseInt(item.title), // Assuming the title contains a valid carId
-                totalPrice: parseFloat(item.price.replace(/[^0-9.-]+/g, "")),
-            })),
-            totalPrice: calculateSubtotal(),
+            userId,
+            items,
             customerDetails,
             paymentDetails: {
                 method: paymentMethod,
@@ -121,15 +126,14 @@ export default function CartPage(): JSX.Element {
                 reservationAmount: paymentMode === "reservation" ? parseFloat(reservationAmount) : null,
             },
             status: "pending",
-            userId,
         };
+    
+        console.log("Order details:", orderDetails);
     
         try {
             const response = await fetch('http://localhost:3000/api/orders', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(orderDetails),
             });
     

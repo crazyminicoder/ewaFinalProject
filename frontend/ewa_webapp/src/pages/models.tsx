@@ -5,6 +5,7 @@ import DefaultLayout from "@/layouts/default";
 import axios from 'axios';
 
 type Car = {
+    id: number;
     title: string;
     img: string;
     price: string;

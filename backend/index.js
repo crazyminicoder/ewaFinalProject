@@ -8,7 +8,6 @@ const axios = require('axios'); // For making API requests (e.g., to OpenAI)
 const csv = require('csv-parser'); // For parsing CSV files
 const fs = require('fs'); // File system to read the CSV file
 require('dotenv').config(); // Load environment variables from .env
-const orderRoutes = require('./routes/orderRoutes'); // Import order routes
 const app = express(); // Express app definition
 
 // CORS Configuration
@@ -21,7 +20,6 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json()); // For parsing application/json bodies
-app.use('/api', orderRoutes); // Use the order routes
 
 // Initialize an array to store car data
 let cars = [];

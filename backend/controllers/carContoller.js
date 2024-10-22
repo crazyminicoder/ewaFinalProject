@@ -18,6 +18,7 @@ exports.getAllCars = async (req, res) => {
 
         // Format the cars
         const formattedCars = cars.map(car => ({
+            id: car.id,
             title: `${car.make} ${car.model}`, 
             img: car.imageUrl, 
             price: `$${car.price}`,
@@ -61,21 +62,51 @@ exports.getCarMakes = async (req, res) => {
 };
 
 exports.placeOrder = async (req, res) => {
-    const { userId, carId, totalPrice, status = 'pending' } = req.body; // Extract required fields from the request
+    const { userId, items, customerDetails, paymentDetails, status = 'pending' } = req.body;
 
     try {
-        // Create a new order with the provided data
-        const order = await Order.create({
-            userId,
-            carId,
-            status,
-            totalPrice,
-        });
+        // Validate required data
+        if (!userId || !items || items.length === 0) {
+            return res.status(400).json({ message: 'Invalid order data.' });
+        }
 
-        res.status(201).json({ message: 'Order placed successfully', order });
+        const createdOrders = [];
+
+        // Iterate over items and create a separate order for each carId
+        for (const item of items) {
+            const { carId, totalPrice } = item;
+
+            // Ensure carId and totalPrice are present
+            if (!carId || !totalPrice) {
+                return res.status(400).json({ message: 'Invalid item data.' });
+            }
+
+            // Create a new order entry for each item
+            const order = await Order.create({
+                userId,
+                carId, // Correctly save carId for each order
+                items: JSON.stringify([item]), // Save individual item in JSON format
+                totalPrice,
+                status,
+                customerDetails: JSON.stringify(customerDetails),
+                paymentDetails: JSON.stringify(paymentDetails),
+                createdAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            createdOrders.push(order);
+        }
+
+        // Respond with all created orders
+        res.status(201).json({
+            message: 'Order(s) placed successfully',
+            orders: createdOrders,
+        });
     } catch (error) {
         console.error('Error placing order:', error);
         res.status(500).json({ message: 'Failed to place order' });
     }
 };
+
+
 

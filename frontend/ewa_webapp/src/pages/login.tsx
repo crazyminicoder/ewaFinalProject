@@ -54,8 +54,6 @@ const Login: React.FC = () => {
         const decodedToken = decodeToken(data.token);
             if (decodedToken) {
                 localStorage.setItem('userId', decodedToken.id.toString()); // Store userId in localStorage
-                alert('Login successful!');
-                // Navigate to a different page or dashboard
             } else {
                 alert('Failed to decode token.');
           }
