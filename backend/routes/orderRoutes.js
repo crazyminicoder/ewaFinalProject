@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/orderController');
 
-router.post('/orders', orderController.saveOrder); // Route to handle placing an order
+// Route to place a new order
+router.post('/orders', orderController.placeOrder);
 
 module.exports = router;

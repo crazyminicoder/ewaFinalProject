@@ -14,6 +14,7 @@ import {
 } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
 
+
 type Car = {
     title: string;
     img: string;
@@ -54,9 +55,10 @@ export default function CartPage(): JSX.Element {
     });
 
     useEffect(() => {
-        const storedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+        const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
         setCartItems(storedCart);
-    }, []);
+      }, []);
+      
 
     const handleRemoveFromCart = (index: number) => {
         const updatedCart = cartItems.filter((_, i) => i !== index);
@@ -88,7 +90,7 @@ export default function CartPage(): JSX.Element {
             alert("Your cart is empty.");
             return;
         }
-
+    
         // Validate customer details
         for (const [key, value] of Object.entries(customerDetails)) {
             if (!value) {
@@ -96,7 +98,7 @@ export default function CartPage(): JSX.Element {
                 return;
             }
         }
-
+    
         // Validate payment details
         for (const [key, value] of Object.entries(paymentDetails)) {
             if (!value) {
@@ -104,23 +106,24 @@ export default function CartPage(): JSX.Element {
                 return;
             }
         }
-
+    
         const userId = localStorage.getItem('userId');
         const orderDetails = {
-            items: cartItems.map(item => ({
-                carId: item.title,
+            items: cartItems.map((item) => ({
+                carId: parseInt(item.title), // Assuming the title contains a valid carId
                 totalPrice: parseFloat(item.price.replace(/[^0-9.-]+/g, "")),
             })),
+            totalPrice: calculateSubtotal(),
             customerDetails,
             paymentDetails: {
                 method: paymentMethod,
                 mode: paymentMode,
-                reservationAmount: paymentMode === "reservation" ? parseFloat(reservationAmount) : null
+                reservationAmount: paymentMode === "reservation" ? parseFloat(reservationAmount) : null,
             },
             status: "pending",
-            userId
+            userId,
         };
-
+    
         try {
             const response = await fetch('http://localhost:3000/api/orders', {
                 method: 'POST',
@@ -129,9 +132,9 @@ export default function CartPage(): JSX.Element {
                 },
                 body: JSON.stringify(orderDetails),
             });
-
+    
             const data = await response.json();
-
+    
             if (response.ok) {
                 alert('Order placed successfully!');
                 localStorage.removeItem("cart");
@@ -145,7 +148,8 @@ export default function CartPage(): JSX.Element {
             alert('An error occurred while placing the order.');
         }
     };
-
+    
+    
     if (cartItems.length === 0) {
         return (
             <div className="text-center mt-8">
@@ -162,11 +166,11 @@ export default function CartPage(): JSX.Element {
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-semibold">Your Cart</h1>
-        <Button variant="bordered" onClick={handleGoBack} className="ml-4">
-            Continue Shopping
-        </Button>
-    </div>
+                <h1 className="text-2xl font-semibold">Your Cart</h1>
+                <Button variant="bordered" onClick={handleGoBack} className="ml-4">
+                    Continue Shopping
+                </Button>
+            </div>
             
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Left Column - Cart Items */}
@@ -210,10 +214,16 @@ export default function CartPage(): JSX.Element {
                         <CardBody className="p-6 space-y-4">
                             <h2 className="text-xl font-semibold">Customer Details</h2>
                             <Input
-                                label="Name"
-                                placeholder="Enter your name"
+                                label="First Name"
+                                placeholder="Enter your first name"
                                 value={customerDetails.firstName}
-                                onChange={(e) => handleInputChange('Name', e.target.value, 'customer')}
+                                onChange={(e) => handleInputChange('firstName', e.target.value, 'customer')}
+                            />
+                            <Input
+                                label="Last Name"
+                                placeholder="Enter your last name"
+                                value={customerDetails.lastName}
+                                onChange={(e) => handleInputChange('lastName', e.target.value, 'customer')}
                             />
                             <Input
                                 type="email"

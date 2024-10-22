@@ -8,7 +8,7 @@ const axios = require('axios'); // For making API requests (e.g., to OpenAI)
 const csv = require('csv-parser'); // For parsing CSV files
 const fs = require('fs'); // File system to read the CSV file
 require('dotenv').config(); // Load environment variables from .env
-
+const orderRoutes = require('./routes/orderRoutes'); // Import order routes
 const app = express(); // Express app definition
 
 // CORS Configuration
@@ -21,6 +21,7 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json()); // For parsing application/json bodies
+app.use('/api', orderRoutes); // Use the order routes
 
 // Initialize an array to store car data
 let cars = [];
@@ -35,25 +36,22 @@ fs.createReadStream('./nextGenCars.csv') // Update this to the actual location o
 
 // OpenAI Chat Route
 app.post('/api/chat', async (req, res) => {
-  
   const { message } = req.body;
 
   // Format car data to include in the OpenAI prompt
-  const carData = cars.map(car => 
-    `${car.Make} ${car.Model}: Type: ${car.Type}, Price: ${car.Price}, Features: ${car.Features}`
-  ).join("\n");
-
-
+  const carData = cars.map(car => {
+    return `${car.make} ${car.model}: Type: ${car.type}, Price: $${car.price}, Features: ${car.features}, Image: ${car.imageUrl}`;
+  }).join("\n");
 
   const prompt = `
     You are a car recommendation assistant. Here is a list of cars with their details. 
-    Based on the user’s preferences, please recommend the most suitable option.
+    Use only the provided list to recommend a car based on user preferences.
 
     Available cars:
     ${carData}
 
     User preference: ${message}
-    Your recommendation should include the car make, model, type, price range, and key features.
+    Your recommendation should include only the car make, model, type, price range, key features, and image URL from the available list.
   `;
 
   try {
@@ -62,40 +60,50 @@ app.post('/api/chat', async (req, res) => {
       {
         model: "gpt-3.5-turbo",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 150,
+        max_tokens: 250,
         temperature: 0.7,
       },
       {
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`, // Use the env variable here
+          'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
         },
       }
     );
 
-    const reply = response.data.choices[0].message.content.trim();
+    const recommendedCarNames = response.data.choices[0].message.content.trim().split('\n');
 
-    res.json({ reply });
-  } catch (error) {
-    if (error.response) {
-      console.error("Error Response:", error.response.data);
-      console.error("Status:", error.response.status);
-      console.error("Headers:", error.response.headers);
-      res.status(500).json({ error: "Error from OpenAI API", details: error.response.data });
-    } else if (error.request) {
-      console.error("No response received:", error.request);
-      res.status(500).json({ error: "No response received from OpenAI API" });
+    // Adjust this logic to handle multiple recommendations
+    const recommendedCars = cars.filter(car => 
+      recommendedCarNames.some(name => 
+        name.toLowerCase().includes(car.make.toLowerCase()) && name.toLowerCase().includes(car.model.toLowerCase())
+      )
+    );
+
+    if (recommendedCars.length > 0) {
+      const botMessages = recommendedCars.map(car => ({
+        make: car.make,
+        model: car.model,
+        type: car.type,
+        price: car.price,
+        features: car.features,
+        imageUrl: car.imageUrl,
+      }));
+
+      res.json({ reply: botMessages });
     } else {
-      console.error("Request error:", error.message);
-      res.status(500).json({ error: "Error setting up request to OpenAI API" });
+      res.json({ reply: [] });
     }
+  } catch (error) {
+    console.error("Error processing chat response:", error);
+    res.status(500).json({ error: "Failed to generate recommendations" });
   }
 });
+
 
 // Routes for cars and authentication
 app.use('/api', carRoutes); // Car-related routes
 app.use('/auth', authRoutes); // Authentication-related routes
-//app.use('/api', orderRoutes); // Use the order routes
 
 // Database Sync
 db.sequelize.sync({ force: false }) // Set force: false to avoid dropping tables in production

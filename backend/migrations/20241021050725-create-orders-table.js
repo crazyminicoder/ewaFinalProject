@@ -1,5 +1,5 @@
-// migrations/XXXXXX-create-orders-table.js
 'use strict';
+
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('orders', {
@@ -12,14 +12,18 @@ module.exports = {
       userId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'users', key: 'id' }, // Foreign key to users table
-        onDelete: 'CASCADE', // Optional: Delete orders if the user is deleted
+        references: { model: 'users', key: 'id' },
+        onDelete: 'CASCADE',
       },
       carId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'cars', key: 'id' }, // Foreign key to cars table
-        onDelete: 'CASCADE', // Optional: Delete orders if the car is deleted
+        references: { model: 'cars', key: 'id' },
+        onDelete: 'CASCADE',
+      },
+      items: {
+        type: Sequelize.JSON,
+        allowNull: false,
       },
       status: {
         type: Sequelize.STRING,
@@ -28,6 +32,14 @@ module.exports = {
       },
       totalPrice: {
         type: Sequelize.FLOAT,
+        allowNull: false,
+      },
+      customerDetails: {
+        type: Sequelize.JSON,
+        allowNull: false,
+      },
+      paymentDetails: {
+        type: Sequelize.JSON,
         allowNull: false,
       },
       createdAt: {

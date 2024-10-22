@@ -119,7 +119,17 @@ This command will:
 - Create a new `cars` table.
 - Read data from `temp_data/cars.csv` and insert it into the database.
 
-### Create Users table
+run:
+
+```bash
+npm install dotenv
+```
+
+create a .env file in backend main directory
+add the following line
+OPENAI_API_KEY='YOUR KEY'
+
+### Create Users table and Order table
 
 Run the following command to get the users & order tables in the database:
 

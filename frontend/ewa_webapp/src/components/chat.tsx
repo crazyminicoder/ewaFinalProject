@@ -3,6 +3,7 @@ import { Button, Tooltip, ScrollShadow } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import PromptInput from './prompt-input';
+import { useTheme } from '@/hooks/use-theme';
 
 type ChatProps = {
   selectedCarBrand: string;
@@ -12,6 +13,7 @@ type ChatMessage = {
   user: boolean;
   message: string;
   imageUrl?: string;
+  carDetails?: any;
 };
 
 export default function Chat({ selectedCarBrand }: ChatProps) {
@@ -27,32 +29,66 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
     {
       title: 'Find the best luxury cars',
       description: 'Compare models and their luxury features.',
-    }
+    },
   ];
-
-  const [prompt, setPrompt] = useState<string>(''); 
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]); 
-  const [loading, setLoading] = useState<boolean>(false); 
-  const chatContainerRef = useRef<HTMLDivElement>(null); 
-  const [isUserScrolling, setIsUserScrolling] = useState<boolean>(false); 
+  
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const [prompt, setPrompt] = useState<string>('');
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [isUserScrolling, setIsUserScrolling] = useState<boolean>(false);
   const initialMessageAdded = useRef(false);
 
-  const submitQuery = async (query: string) => {
+
+  const handleAddToCart = (car: any) => {
+    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+    const carToAdd = {
+      title: car.make + ' ' + car.model,
+      img: car.imageUrl,
+      price: car.price,
+      description: car.features || 'No description available',
+      trim: car.type || 'N/A',
+    };
+    cart.push(carToAdd);
+    localStorage.setItem('cart', JSON.stringify(cart));
+    setChatHistory((prev) => [
+      ...prev,
+      { user: false, message: `${car.make} ${car.model} has been added to your cart.` },
+    ]);
+  };
+
+const submitQuery = async (query: string) => {
     const userMessage: ChatMessage = { user: true, message: query };
     setChatHistory((prev) => [...prev, userMessage]);
-
     setLoading(true);
 
     try {
       const response = await axios.post('http://localhost:3000/api/chat', { message: query });
 
-      const botMessage: ChatMessage = { user: false, message: response.data.reply };
+      if (Array.isArray(response.data.reply)) {
+        const botMessages = response.data.reply.map((car: any) => ({
+          user: false,
+          message: `
+            <strong>${car.make} ${car.model}</strong><br/>
+            <strong>Type:</strong> ${car.type}<br/>
+            <strong>Price:</strong> $${car.price}<br/>
+            <strong>Features:</strong> ${car.features}
+          `,
+          imageUrl: car.imageUrl,
+          carDetails: car,
+        }));
 
-      setChatHistory((prev) => [...prev, botMessage]);
+        setChatHistory((prev) => [...prev, ...botMessages]);
+      } else {
+        setChatHistory((prev) => [
+          { user: false, message: 'No recommendations found. Please try again.' },
+        ]);
+      }
     } catch (error) {
       console.error('Error fetching data from backend:', error);
       setChatHistory((prev) => [
-        ...prev,
         { user: false, message: 'Error fetching response. Please try again.' },
       ]);
     } finally {
@@ -91,32 +127,45 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
     }
   };
 
-  // Function to handle idea click and send it as a query
   const handleIdeaClick = async (idea: string) => {
     await submitQuery(idea);
   };
 
-  // Add the initial message once, to prevent duplicates
   useEffect(() => {
     if (selectedCarBrand && !initialMessageAdded.current) {
       const initialMessage = `Hey, get recommendations on finding your cars!`;
       setChatHistory((prev) => [{ user: false, message: initialMessage }, ...prev]);
-      initialMessageAdded.current = true; // Mark that the message has been added
+      initialMessageAdded.current = true;
     }
   }, [selectedCarBrand]);
 
+
   return (
-    <div className="fixed top-16 right-0 flex flex-col gap-4 z-20 justify-between p-5 w-[370px] bg-black bg-opacity-70 backdrop-blur-md h-[calc(100vh-4rem)] rounded-lg overflow-hidden">
+    <div 
+      className={`fixed top-16 right-0 flex flex-col gap-4 z-20 justify-between p-5 w-[370px] 
+        ${isDark 
+          ? 'bg-content1/80 text-content1-foreground' 
+          : 'bg-background/80 text-foreground'
+        } 
+        backdrop-blur-md h-[calc(100vh-4rem)] rounded-lg overflow-hidden
+        border-1 ${isDark ? 'border-content2/20' : 'border-default-200/50'}
+        transition-colors duration-200`}
+    >
       <ScrollShadow hideScrollBar className="flex flex-nowrap gap-2" orientation="horizontal">
         <div className="flex gap-2">
           {ideas.map(({ title, description }, index) => (
             <Button
               key={index}
-              className="flex h-14 flex-col items-start gap-0"
+              className={`flex h-14 flex-col items-start gap-0 
+                ${isDark 
+                  ? 'hover:bg-content2/50' 
+                  : 'hover:bg-default-100'
+                }
+                transition-colors duration-200`}
               variant="flat"
-              onClick={() => handleIdeaClick(description)} // Pass idea description as query
+              onClick={() => handleIdeaClick(description)}
             >
-              <p>{title}</p>
+              <p className={isDark ? 'text-content1-foreground' : 'text-foreground'}>{title}</p>
               <p className="text-default-500">{description}</p>
             </Button>
           ))}
@@ -125,21 +174,66 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
 
       <div
         ref={chatContainerRef}
-        className="flex w-full flex-col gap-2 overflow-y-auto"
-        style={{ height: '70%' }}
+        className="flex w-full flex-col gap-2 overflow-y-auto scroll-smooth"
+        style={{
+          height: '70%',
+          overflow: 'scroll',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
         onScroll={handleScroll}
       >
         {chatHistory.map((chat, index) => (
           <div key={index} className={`flex ${chat.user ? 'justify-end' : 'justify-start'}`}>
-            <div className={`p-2 mx-3 rounded-md ${chat.user ? 'bg-[#E42638] text-white' : 'bg-gray-200 text-black'}`}>
-              {chat.message}
-              {chat.imageUrl && <img src={chat.imageUrl} alt="Car" className="mt-2 rounded" style={{ maxWidth: '100px' }} />}
+            <div className="w-full flex flex-col items-center gap-2">
+              {chat.imageUrl && (
+                <div className={`w-full rounded-lg overflow-hidden 
+                  ${isDark ? 'border-content2/20' : 'border-default-200/50'} 
+                  border-1`}>
+                  <img
+                    src={chat.imageUrl}
+                    alt="Car"
+                    className="w-full rounded-lg transition-transform hover:scale-105"
+                    style={{ maxWidth: '100%', height: '200px', objectFit: 'cover' }}
+                  />
+                </div>
+              )}
+              <div
+                className={`p-3 mx-3 rounded-lg w-full
+                  ${chat.user
+                    ? 'bg-primary text-primary-foreground'
+                    : isDark
+                      ? 'bg-content2 text-content2-foreground'
+                      : 'bg-default-100 text-default-900'
+                  }
+                  transition-colors duration-200`}
+                dangerouslySetInnerHTML={{ __html: chat.message }}
+              />
+              {!chat.user && chat.carDetails && (
+                <Button
+                  className={`mt-2 w-full 
+                    ${isDark 
+                      ? 'bg-primary hover:bg-primary-500 active:bg-primary-600' 
+                      : 'bg-primary hover:bg-primary-500 active:bg-primary-600'
+                    }
+                    transition-colors duration-200`}
+                  variant="solid"
+                  onClick={() => handleAddToCart(chat.carDetails)}
+                >
+                  Add to Cart
+                </Button>
+              )}
             </div>
           </div>
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="p-2 mx-3 rounded-md bg-gray-200 text-black">
+            <div className={`p-2 mx-3 rounded-md 
+              ${isDark 
+                ? 'bg-content2 text-content2-foreground' 
+                : 'bg-default-100 text-default-900'
+              }
+              transition-colors duration-200`}>
               <span className="animate-pulse">•</span>
               <span className="animate-pulse">•</span>
               <span className="animate-pulse">•</span>
@@ -149,16 +243,46 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
       </div>
 
       <form
-        className="flex w-full flex-col items-start rounded-medium bg-default-100 transition-colors hover:bg-default-200/70"
+        className={`flex w-full flex-col items-start rounded-xl border
+          ${isDark 
+            ? 'bg-content2/50 hover:bg-content2/70 border-content2/50' 
+            : 'bg-default-50/50 hover:bg-default-100/70 border-default-100/50'
+          }
+          transition-all duration-200`}
         onSubmit={onSubmitPrompt}
       >
         <PromptInput
-          classNames={{ inputWrapper: '!bg-transparent shadow-none', innerWrapper: 'relative', input: 'pt-1 pl-2 pb-6 !pr-10 text-medium' }}
+          classNames={{
+            inputWrapper: '!bg-transparent shadow-none',
+            innerWrapper: 'relative',
+            input: `pt-1 pl-2 pb-6 !pr-10 text-medium 
+              ${isDark 
+                ? 'text-content1-foreground placeholder:text-content1-foreground/50' 
+                : 'text-foreground placeholder:text-foreground/50'
+              }`,
+          }}
           endContent={
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-2 pb-2 pr-2">
               <Tooltip showArrow content="Send message">
-                <Button isIconOnly className={!prompt ? 'bg-foreground/50 ' : 'bg-[#F36B6E]'} isDisabled={!prompt} radius="lg" size="sm" variant="solid" type="submit">
-                  <Icon className="text-white" icon="solar:arrow-up-linear" width={20} />
+                <Button
+                  isIconOnly
+                  className={`
+                    ${!prompt 
+                      ? 'bg-default-300/50 cursor-not-allowed' 
+                      : 'bg-primary hover:bg-primary-500 active:bg-primary-600'
+                    }
+                    transition-colors duration-200`}
+                  isDisabled={!prompt}
+                  radius="lg"
+                  size="sm"
+                  variant="solid"
+                  type="submit"
+                >
+                  <Icon 
+                    className={`${!prompt ? 'text-default-500' : 'text-white'}`} 
+                    icon="solar:arrow-up-linear" 
+                    width={20} 
+                  />
                 </Button>
               </Tooltip>
             </div>
@@ -166,8 +290,8 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
           minRows={3}
           radius="lg"
           value={prompt}
-          placeholder="Type your query here..." 
-          variant="flat"
+          placeholder="Type your query here..."
+          variant="bordered"
           onValueChange={setPrompt}
           onKeyDown={handleKeyDown}
         />
