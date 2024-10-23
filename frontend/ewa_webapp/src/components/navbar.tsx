@@ -261,7 +261,7 @@ export const Navbar = () => {
 
       {isChatOpen && userId && (
         <Chat 
-          selectedCarBrand="Tesla" 
+          selectedCarBrand="new" 
           userId={userId}
         />
       )}

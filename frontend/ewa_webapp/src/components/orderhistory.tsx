@@ -214,55 +214,16 @@ const OrderHistory: React.FC = () => {
               }
             >
               <div className="px-2">
-                {/* Car Details Cards */}
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold mb-4">Ordered Cars</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {items.map((item, index) => (
-                      <Card key={index} shadow="sm">
-                        <CardBody className="p-0">
-                          {item.carDetails?.img && (
-                            <img
-                              src={item.carDetails.img}
-                              alt={item.carDetails.title || `Car ${item.carId}`}
-                              className="w-full h-48 object-cover"
-                            />
-                          )}
-                          <div className="p-4">
-                            <h4 className="text-lg font-semibold">
-                              {item.carDetails?.title || `Car ID: ${item.carId}`}
-                            </h4>
-                            {item.carDetails?.trim && (
-                              <p className="text-small text-default-500">
-                                {item.carDetails.trim}
-                              </p>
-                            )}
-                            {item.carDetails?.description && (
-                              <p className="text-small mt-2">
-                                {item.carDetails.description}
-                              </p>
-                            )}
-                            <p className="text-danger text-lg mt-2">
-                              ${item.totalPrice.toLocaleString()}
-                            </p>
-                          </div>
-                        </CardBody>
-                      </Card>
-                    ))}
-                  </div>
-                </div>
-
-                <Divider className="my-6" />
-
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Order Details */}
-                  <div className="space-y-4">
-                    <div>
+                {/* Create a two-column grid layout */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Column: Order Details and Customer Details */}
+                  <div>
+                    {/* Order Details */}
+                    <div className="space-y-4">
                       <h3 className="text-lg font-semibold mb-2">Order Details</h3>
                       <div className="space-y-2">
                         <p>
-                          <span className="text-default-500">Total Amount:</span>{' '}
-                          ${order.totalPrice.toLocaleString()}
+                          <span className="text-default-500">Total Amount:</span> ${order.totalPrice.toLocaleString()}
                         </p>
                         <p>
                           <span className="text-default-500">Payment Method:</span>{' '}
@@ -281,48 +242,63 @@ const OrderHistory: React.FC = () => {
                       </div>
                     </div>
 
-                    <Divider />
+                    <Divider className="my-6" />
 
                     {/* Customer Details */}
                     <div>
                       <h3 className="text-lg font-semibold mb-2">Customer Details</h3>
                       <div className="space-y-2">
                         <p>
-                          <span className="text-default-500">Name:</span>{' '}
-                          {customerDetails.firstName} {customerDetails.lastName}
+                          <span className="text-default-500">Name:</span> {customerDetails.firstName} {customerDetails.lastName}
                         </p>
                         <p>
-                          <span className="text-default-500">Email:</span>{' '}
-                          {customerDetails.email}
+                          <span className="text-default-500">Email:</span> {customerDetails.email}
                         </p>
                         <p>
-                          <span className="text-default-500">Phone:</span>{' '}
-                          {customerDetails.phone}
+                          <span className="text-default-500">Phone:</span> {customerDetails.phone}
                         </p>
                         <p>
-                          <span className="text-default-500">Address:</span>{' '}
-                          {customerDetails.address}
+                          <span className="text-default-500">Address:</span> {customerDetails.address}
                         </p>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column: Car Details */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">Ordered Cars</h3>
+                    <div className="grid grid-cols-1 gap-4">
+                      {items.map((item, index) => (
+                        <Card key={index} shadow="sm">
+                          <CardBody className="p-0">
+                            {item.carDetails?.img && (
+                              <img
+                                src={item.carDetails.img}
+                                alt={item.carDetails.title || `Car ${item.carId}`}
+                                className="w-full h-48 object-cover"
+                              />
+                            )}
+                            <div className="p-4">
+                              <h4 className="text-lg font-semibold">
+                                {item.carDetails?.title || `Car ID: ${item.carId}`}
+                              </h4>
+                              {item.carDetails?.trim && (
+                                <p className="text-small text-default-500">{item.carDetails.trim}</p>
+                              )}
+                              {item.carDetails?.description && (
+                                <p className="text-small mt-2">{item.carDetails.description}</p>
+                              )}
+                              <p className="text-danger text-lg mt-2">${item.totalPrice.toLocaleString()}</p>
+                            </div>
+                          </CardBody>
+                        </Card>
+                      ))}
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-6 flex justify-end gap-2">
-                  <Button
-                    color="primary"
-                    variant="flat"
-                    startContent={<Icon icon="solar:chat-line-linear" />}
-                  >
-                    Contact Support
-                  </Button>
-                  <Button
-                    color="danger"
-                    variant="light"
-                    startContent={<Icon icon="solar:printer-linear" />}
-                  >
-                    Download Invoice
-                  </Button>
+          
                 </div>
               </div>
             </AccordionItem>
