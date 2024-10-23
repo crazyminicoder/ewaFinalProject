@@ -13,7 +13,67 @@ import {
     Textarea
 } from "@nextui-org/react";
 import { useNavigate } from "react-router-dom";
+import { Icon } from '@iconify/react';
+import { useTheme } from '@/hooks/use-theme';
 
+// EmptyCartState Component
+const EmptyCartState = ({ onStartExploring }: { onStartExploring: () => void }) => {
+    const { theme } = useTheme();
+    const isDark = theme === 'dark';
+  
+    return (
+      <div className="h-screen flex items-center justify-center"> {/* Full height and centered layout */}
+        <div className={`w-full max-w-md mx-auto ${
+          isDark 
+            ? 'bg-content1/50 text-content1-foreground' 
+            : 'bg-background/50 text-foreground'
+        } backdrop-blur-lg rounded-lg`}>
+          <div className="flex flex-col items-center justify-center gap-6 py-8 px-4 text-center">
+            <div className="relative">
+              <div className="absolute -right-3 -top-3">
+                <Icon 
+                  icon="solar:box-linear" 
+                  className={`w-8 h-8 ${isDark ? 'text-primary' : 'text-primary'} animate-bounce`}
+                  width={32}
+                  height={32}
+                />
+              </div>
+              <Icon 
+                icon="solar:cart-large-minimalistic-linear" 
+                className={isDark ? 'text-content1-foreground/30' : 'text-default-400'}
+                width={80}
+                height={80}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <h3 className="text-xl font-semibold">Your cart is empty</h3>
+              <p className={`text-sm ${isDark ? 'text-content1-foreground/60' : 'text-default-500'}`}>
+                Start exploring our recommendations to find your perfect ride!
+              </p>
+            </div>
+  
+            <Button 
+              color="danger"
+              variant="shadow"
+              className="font-medium"
+              startContent={
+                <Icon 
+                  icon="solar:cart-large-minimalistic-linear" 
+                  width={20}
+                  height={20}
+                />
+              }
+              onClick={onStartExploring}
+            >
+              Start Exploring
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+  
 
 type Car = {
     id: string;
@@ -33,6 +93,7 @@ export default function CartPage(): JSX.Element {
     const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("credit");
     const [reservationAmount, setReservationAmount] = useState<string>("1000");
     const navigate = useNavigate();
+    const [showEmptyState, setShowEmptyState] = useState<boolean>(true);
 
     // Customer Details
     const [customerDetails, setCustomerDetails] = useState({
@@ -58,6 +119,7 @@ export default function CartPage(): JSX.Element {
     useEffect(() => {
         const storedCart = JSON.parse(localStorage.getItem('cart') || '[]');
         setCartItems(storedCart);
+        setShowEmptyState(storedCart.length === 0);
       }, []);
       
 
@@ -65,10 +127,15 @@ export default function CartPage(): JSX.Element {
         const updatedCart = cartItems.filter((_, i) => i !== index);
         setCartItems(updatedCart);
         localStorage.setItem("cart", JSON.stringify(updatedCart));
+        setShowEmptyState(updatedCart.length === 0);
     };
 
     const handleGoBack = () => {
         navigate(-1);
+    };
+
+    const handleStartExploring = () => {
+        navigate('/'); // Example navigation to a cars page
     };
 
     const calculateSubtotal = () => {
@@ -143,6 +210,7 @@ export default function CartPage(): JSX.Element {
                 alert('Order placed successfully!');
                 localStorage.removeItem("cart");
                 setCartItems([]);
+                setShowEmptyState(true);
                 navigate('/');
             } else {
                 alert(data.message || 'Failed to place the order.');
@@ -154,13 +222,8 @@ export default function CartPage(): JSX.Element {
     };
     
     
-    if (cartItems.length === 0) {
-        return (
-            <div className="text-center mt-8">
-                Your cart is empty.
-                <Button onClick={handleGoBack} className="mt-4">Go Back</Button>
-            </div>
-        );
+    if (showEmptyState) {
+        return <EmptyCartState onStartExploring={handleStartExploring} />;
     }
 
     const subtotal = calculateSubtotal();

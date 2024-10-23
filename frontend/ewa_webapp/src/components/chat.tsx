@@ -7,6 +7,7 @@ import { useTheme } from '@/hooks/use-theme';
 
 type ChatProps = {
   selectedCarBrand: string;
+  userId: string;
 };
 
 type ChatMessage = {
@@ -45,6 +46,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
   const handleAddToCart = (car: any) => {
     let cart = JSON.parse(localStorage.getItem('cart') || '[]');
     const carToAdd = {
+      id: car.id,
       title: car.make + ' ' + car.model,
       img: car.imageUrl,
       price: car.price,
@@ -57,7 +59,12 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
       ...prev,
       { user: false, message: `${car.make} ${car.model} has been added to your cart.` },
     ]);
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   };
+
+  
 
 const submitQuery = async (query: string) => {
     const userMessage: ChatMessage = { user: true, message: query };
@@ -77,18 +84,26 @@ const submitQuery = async (query: string) => {
             <strong>Features:</strong> ${car.features}
           `,
           imageUrl: car.imageUrl,
-          carDetails: car,
+          carDetails: {
+          id: car.id, // Include the carId here for backend purposes but don't display it
+          make: car.make,
+          model: car.model,
+          type: car.type,
+          price: car.price,
+          features: car.features,
+          imageUrl: car.imageUrl,
+        },
         }));
 
         setChatHistory((prev) => [...prev, ...botMessages]);
       } else {
-        setChatHistory((prev) => [
+        setChatHistory(() => [
           { user: false, message: 'No recommendations found. Please try again.' },
         ]);
       }
     } catch (error) {
       console.error('Error fetching data from backend:', error);
-      setChatHistory((prev) => [
+      setChatHistory(() => [
         { user: false, message: 'Error fetching response. Please try again.' },
       ]);
     } finally {
@@ -203,21 +218,21 @@ const submitQuery = async (query: string) => {
                   ${chat.user
                     ? 'bg-primary text-primary-foreground'
                     : isDark
-                      ? 'bg-content2 text-content2-foreground'
-                      : 'bg-default-100 text-default-900'
+                      ? 'bg-[#E42638] text-white'
+                      : 'bg-gray-200 text-black'
                   }
                   transition-colors duration-200`}
                 dangerouslySetInnerHTML={{ __html: chat.message }}
               />
               {!chat.user && chat.carDetails && (
                 <Button
-                  className={`mt-2 w-full 
+                  className={`w-full 
                     ${isDark 
-                      ? 'bg-primary hover:bg-primary-500 active:bg-primary-600' 
-                      : 'bg-primary hover:bg-primary-500 active:bg-primary-600'
+                      ? 'bg-gray-600 hover:bg-gray-500 active:bg-gray-400' 
+                      : 'bg-gray-300 hover:bg-gray-200 active:bg-gray-100'
                     }
-                    transition-colors duration-200`}
-                  variant="solid"
+                    text-white transition-colors duration-200`}
+                  variant="flat"
                   onClick={() => handleAddToCart(chat.carDetails)}
                 >
                   Add to Cart

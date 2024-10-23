@@ -46,9 +46,36 @@ const Register: React.FC = () => {
 
       const data = await response.json();
 
+      function decodeToken(token: string): { id: number; email: string } | null {
+        try {
+            const base64Url = token.split('.')[1]; // Get the payload part of the token
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(
+                atob(base64)
+                    .split('')
+                    .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                    .join('')
+            );
+      
+            return JSON.parse(jsonPayload); // Convert the JSON string into an object
+        } catch (error) {
+            console.error('Invalid token:', error);
+            return null;
+        }
+      }
+
       if (response.ok) {
+        const decodedToken = decodeToken(data.token);
+        if (decodedToken) {
+            localStorage.setItem('userId', decodedToken.id.toString());
+            localStorage.setItem('userName', decodedToken.email.split("@")[0]); // Store the user’s name
+        }
+        localStorage.setItem('token', data.token);
         toast.success('You’ve leveled up. Now start building the life you want.', { theme: "dark",position: "top-center" });
-        setTimeout(() => navigate('/login'), 3000); // Navigate to login after 3 seconds
+        setTimeout(() => navigate('/'), 2000); // Navigate to the index page after 3 seconds
+      } else if (data.message === 'User already exists') { // Check if the user already exists
+        toast.error('An account with this email already exists. Please log in.', { position: "top-center" });
+        setTimeout(() => navigate('/login'), 2000); // Redirect to login after showing the message
       } else {
         toast.error(data.message, { position: "top-center" });
       }

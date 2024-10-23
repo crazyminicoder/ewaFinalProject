@@ -6,6 +6,8 @@ const carController = require('../controllers/carContoller');
 router.get('/cars', carController.getAllCars);
 router.get('/car-makes', carController.getCarMakes);
 router.post('/orders', carController.placeOrder); // Route to handle placing an order
+router.get('/orders/:userId', carController.getOrdersByUserId);
+router.get('/cars/:carId', carController.getCarById);
 
 module.exports = router;
 

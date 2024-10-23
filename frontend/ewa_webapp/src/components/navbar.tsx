@@ -14,33 +14,67 @@ import clsx from "clsx";
 import { ThemeSwitch } from "@/components/theme-switch";
 import { Logo } from "@/components/icons";
 import { useEffect, useState } from "react";
-import Chat from "@/components/chat"; // Import the Chat component
+import Chat from "@/components/chat";
+import { useNavigate } from 'react-router-dom';
+
 
 export const Navbar = () => {
-  const [isChatOpen, setIsChatOpen] = useState(false); // State to toggle the chat visibility
-  const [cartCount, setCartCount] = useState<number>(0); // State to track cart count
-  
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [cartCount, setCartCount] = useState<number>(0);
+  const [userName, setUserName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const navigate = useNavigate();
+
   const toggleChat = () => {
-    setIsChatOpen(!isChatOpen); // Toggle chat on button click
+    // Only open chat if user is logged in
+    if (!userId && !isChatOpen) {
+      navigate('/login');
+      return;
+    }
+    setIsChatOpen(!isChatOpen);
   };
 
-  // Update the cart count from localStorage
   useEffect(() => {
     const updateCartCount = () => {
       const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
       setCartCount(cartItems.length);
     };
 
+    const checkLoginStatus = () => {
+      const token = localStorage.getItem("token");
+      const name = localStorage.getItem("userName");
+      const id = localStorage.getItem("userId");
+      if (token && name && id) {
+        setUserName(name);
+        setUserId(id);
+      } else {
+        setUserName(null);
+        setUserId(null);
+      }
+    };
+
     updateCartCount();
+    checkLoginStatus();
 
-    // Add an event listener to update the cart count when localStorage changes
-    window.addEventListener("storage", updateCartCount);
+    window.addEventListener("storage", () => {
+      updateCartCount();
+      checkLoginStatus();
+    });
 
-    // Cleanup the event listener
     return () => {
       window.removeEventListener("storage", updateCartCount);
     };
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userId");
+    setUserName(null);
+    setUserId(null);
+    setIsChatOpen(false); // Close chat when logging out
+    navigate("/login");
+  };
 
   return (
     <>
@@ -57,12 +91,11 @@ export const Navbar = () => {
             </Link>
           </NavbarBrand>
           <div className="hidden lg:flex gap-6 justify-start ml-4">
-            {/* Updated navigation items */}
             <NavbarItem>
               <Link
                 className={clsx(
                   linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium",
+                  "data-[active=true]:text-primary data-[active=true]:font-medium"
                 )}
                 color="foreground"
                 href="/models"
@@ -70,23 +103,43 @@ export const Navbar = () => {
                 Models
               </Link>
             </NavbarItem>
+            {userName ? (
+              <>
+                <NavbarItem>
+                  <p>Welcome, {userName}!</p>
+                </NavbarItem>
+                <NavbarItem>
+                  <Link
+                    className={clsx(
+                      linkStyles({ color: "foreground" }),
+                      "data-[active=true]:text-primary data-[active=true]:font-medium"
+                    )}
+                    color="foreground"
+                    href="/orders"
+                  >
+                    Order History
+                  </Link>
+                </NavbarItem>
+              </>
+            ) : (
+              <NavbarItem>
+                <Link
+                  className={clsx(
+                    linkStyles({ color: "foreground" }),
+                    "data-[active=true]:text-primary data-[active=true]:font-medium"
+                  )}
+                  color="foreground"
+                  href="/login"
+                >
+                  Login
+                </Link>
+              </NavbarItem>
+            )}
             <NavbarItem>
               <Link
                 className={clsx(
                   linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium",
-                )}
-                color="foreground"
-                href="/login"
-              >
-                Login
-              </Link>
-            </NavbarItem>
-            <NavbarItem>
-              <Link
-                className={clsx(
-                  linkStyles({ color: "foreground" }),
-                  "data-[active=true]:text-primary data-[active=true]:font-medium",
+                  "data-[active=true]:text-primary data-[active=true]:font-medium"
                 )}
                 color="foreground"
                 href="/cart"
@@ -119,15 +172,33 @@ export const Navbar = () => {
                 padding: "0.5rem 1.5rem",
                 fontWeight: "bold",
               }}
-              onClick={toggleChat} // Toggle chat on button click
+              onClick={toggleChat}
             >
               Chat with AI
             </Button>
           </NavbarItem>
+          {userName && (
+            <NavbarItem className="hidden md:flex">
+              <Button
+                className="text-sm font-normal text-white"
+                onClick={handleLogout}
+                variant="flat"
+                style={{
+                  background: "linear-gradient(90deg, #f2123b, #f23125, #f3446c)",
+                  color: "#fff",
+                  borderRadius: "8px",
+                  padding: "0.5rem 1.5rem",
+                  fontWeight: "bold",
+                }}
+              >
+                Logout
+              </Button>
+            </NavbarItem>
+          )}
         </NavbarContent>
 
         <NavbarContent className="sm:hidden basis-1 pl-4" justify="end">
-          <ThemeSwitch /> 
+          <ThemeSwitch />
           <NavbarMenuToggle />
         </NavbarContent>
 
@@ -138,11 +209,24 @@ export const Navbar = () => {
                 Models
               </Link>
             </NavbarMenuItem>
-            <NavbarMenuItem>
-              <Link color="foreground" href="/login" size="lg">
-                Login
-              </Link>
-            </NavbarMenuItem>
+            {userName ? (
+              <>
+                <NavbarMenuItem>
+                  <p>Welcome, {userName}!</p>
+                </NavbarMenuItem>
+                <NavbarMenuItem>
+                  <Link color="foreground" href="/orders" size="lg">
+                    Order History
+                  </Link>
+                </NavbarMenuItem>
+              </>
+            ) : (
+              <NavbarMenuItem>
+                <Link color="foreground" href="/login" size="lg">
+                  Login
+                </Link>
+              </NavbarMenuItem>
+            )}
             <NavbarMenuItem>
               <Link color="foreground" href="/cart" size="lg">
                 Cart
@@ -153,12 +237,34 @@ export const Navbar = () => {
                 )}
               </Link>
             </NavbarMenuItem>
+            {userName && (
+              <NavbarMenuItem>
+                <Button
+                  className="text-sm font-normal text-white"
+                  onClick={handleLogout}
+                  variant="ghost"
+                  style={{
+                    background: "linear-gradient(90deg, #f2123b, #f23125, #f3446c)",
+                    color: "#fff",
+                    borderRadius: "8px",
+                    padding: "0.5rem 1.5rem",
+                    fontWeight: "bold",
+                  }}
+                >
+                  Logout
+                </Button>
+              </NavbarMenuItem>
+            )}
           </div>
         </NavbarMenu>
       </NextUINavbar>
 
-      {/* Render Chat component if isChatOpen is true */}
-      {isChatOpen && <Chat selectedCarBrand="Tesla" />} {/* Replace "Tesla" with dynamic data if needed */}
+      {isChatOpen && userId && (
+        <Chat 
+          selectedCarBrand="Tesla" 
+          userId={userId}
+        />
+      )}
     </>
   );
 };

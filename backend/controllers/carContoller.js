@@ -108,5 +108,60 @@ exports.placeOrder = async (req, res) => {
     }
 };
 
+exports.getOrdersByUserId = async (req, res) => {
+    const { userId } = req.params;  // Extract userId from request params
+
+    try {
+        // Find all orders where the userId matches
+        const orders = await Order.findAll({
+            where: { userId },
+        });
+
+        if (orders.length === 0) {
+            return res.status(404).json({ message: 'No orders found for this user.' });
+        }
+
+        // Optionally format the orders here if needed
+        res.json(orders);
+    } catch (error) {
+        console.error('Error fetching orders:', error);
+        res.status(500).json({ message: 'Failed to fetch orders' });
+    }
+};
+
+exports.getCarById = async (req, res) => {
+    const { carId } = req.params;  // Extract carId from the request params
+
+    try {
+        // Find the car by its primary key (assumed to be `id`)
+        const car = await Car.findByPk(carId);
+
+        if (!car) {
+            return res.status(404).json({ message: 'Car not found.' });
+        }
+
+        // Format the car information
+        const formattedCar = {
+            id: car.id,
+            title: `${car.make} ${car.model}`, 
+            img: car.imageUrl, 
+            price: `$${car.price}`,
+            trim: car.trim || "No trim available",
+            description: car.features || "No description available",
+            year: car.year,
+            engineType: car.engineType || "N/A",
+            horsepower: car.horsepower || "N/A",
+            transmission: car.transmission || "N/A",
+            fuelEfficiency: car.fuelEfficiency || "N/A",
+            seatingCapacity: car.seatingCapacity || "N/A",
+            colors: car.colors || "N/A"
+        };
+
+        res.json(formattedCar);
+    } catch (error) {
+        console.error('Error fetching car:', error);
+        res.status(500).json({ message: 'Failed to fetch car.' });
+    }
+};
 
 

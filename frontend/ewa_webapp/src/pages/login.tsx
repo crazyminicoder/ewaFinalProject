@@ -53,13 +53,14 @@ const Login: React.FC = () => {
       if (response.ok) {
         const decodedToken = decodeToken(data.token);
             if (decodedToken) {
-                localStorage.setItem('userId', decodedToken.id.toString()); // Store userId in localStorage
+                localStorage.setItem('userId', decodedToken.id.toString());
+                localStorage.setItem('userName', decodedToken.email.split("@")[0]); // Store userId in localStorage
             } else {
                 alert('Failed to decode token.');
           }
         localStorage.setItem('token', data.token); // Store token for authenticated routes
         toast.success('Welcome back, champion. Time to conquer!', { theme: "dark", position: "top-center" });
-        setTimeout(() => navigate('/'), 3000); // Redirect to the dashboard after 3 seconds
+        setTimeout(() => navigate('/'), 2000); // Redirect to the dashboard after 3 seconds
       } else {
         toast.error(data.message || 'Login failed', { theme: "dark", position: "top-center" });
       }

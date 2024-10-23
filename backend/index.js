@@ -80,6 +80,7 @@ app.post('/api/chat', async (req, res) => {
 
     if (recommendedCars.length > 0) {
       const botMessages = recommendedCars.map(car => ({
+        id: car.id,
         make: car.make,
         model: car.model,
         type: car.type,
