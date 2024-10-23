@@ -19,6 +19,9 @@ import Chat from "@/components/chat"; // Import the Chat component
 export const Navbar = () => {
   const [isChatOpen, setIsChatOpen] = useState(false); // State to toggle the chat visibility
   const [cartCount, setCartCount] = useState<number>(0); // State to track cart count
+  const [isLoggedIn, setIsLoggedIn] = useState(false); // Track login state
+  const [userId, setUserId] = useState(''); // Store user ID
+
   
   const toggleChat = () => {
     setIsChatOpen(!isChatOpen); // Toggle chat on button click
@@ -26,6 +29,11 @@ export const Navbar = () => {
 
   // Update the cart count from localStorage
   useEffect(() => {
+    const userId = localStorage.getItem('userId');
+    if (userId) {
+      setIsLoggedIn(true);
+      setUserId(userId);
+    }
     const updateCartCount = () => {
       const cartItems = JSON.parse(localStorage.getItem("cart") || "[]");
       setCartCount(cartItems.length);
@@ -70,6 +78,20 @@ export const Navbar = () => {
                 Models
               </Link>
             </NavbarItem>
+            {isLoggedIn ? (
+              <NavbarItem>
+                <Link
+                className={clsx(
+                  linkStyles({ color: "foreground" }),
+                  "data-[active=true]:text-primary data-[active=true]:font-medium",
+                )}
+                color="foreground"
+                href={`/orders/${userId}`}
+              >
+                Orders
+                </Link>
+              </NavbarItem>
+            ) :(
             <NavbarItem>
               <Link
                 className={clsx(
@@ -82,6 +104,7 @@ export const Navbar = () => {
                 Login
               </Link>
             </NavbarItem>
+            )}
             <NavbarItem>
               <Link
                 className={clsx(

@@ -108,5 +108,53 @@ exports.placeOrder = async (req, res) => {
     }
 };
 
-
-
+exports.getOrdersByUserId = async (req, res) => {
+    const { userId } = req.params;
+    console.log("test user id = ", userId);
+  
+    try {
+      // Fetch orders by userId
+      const orders = await Order.findAll({ where: { userId } });
+  
+      if (!orders.length) {
+        return res.status(404).json({ message: 'No orders found for this user.' });
+      }
+  
+      // Fetch car details for each order
+      const detailedOrders = await Promise.all(
+        orders.map(async (order) => {
+          const car = await Car.findByPk(order.carId);
+          console.log("test car = ", car);
+  
+          return {
+            orderId: order.id,
+            status: order.status,
+            totalPrice: order.totalPrice,
+            car: car
+              ? {
+                  id: car.id,
+                  title: `${car.make} ${car.model}`, // Combine make and model
+                  img: car.imageUrl, // Use correct image field
+                  price: car.price,
+                  description: car.features, // Use features as description
+                  trim: car.trim,
+                  year: car.year,
+                  engineType: car.engineType,
+                  horsepower: car.horsepower,
+                  transmission: car.transmission,
+                  fuelEfficiency: car.fuelEfficiency,
+                  seatingCapacity: car.seatingCapacity,
+                }
+              : null,
+          };
+        })
+      );
+  
+      console.log("test detailed orders = ", detailedOrders);
+      res.status(200).json(detailedOrders); // Send JSON response
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      res.status(500).json({ message: 'Failed to fetch orders' });
+    }
+  };  
+  

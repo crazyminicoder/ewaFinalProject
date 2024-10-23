@@ -10,6 +10,7 @@ import Register from "@/pages/register";
 import ModelsPage from "@/pages/models";
 import CarDetailPage from "@/pages/cardetailpage";
 import CartPage from "@/pages/cartpage";
+import OrdersPage from "./pages/ordersPage";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
       <Route path="/models/:make" element={<ModelsPage />} />   
       <Route path="/car/:title" element={<CarDetailPage />} />
       <Route path="/cart" element={<CartPage />} />
+      <Route path="/orders/:userId" element={<OrdersPage />} />
       <Route element={<PricingPage />} path="/pricing" />
       <Route element={<BlogPage />} path="/blog" />
       <Route element={<AboutPage />} path="/about" />
