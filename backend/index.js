@@ -1,42 +1,111 @@
 const express = require('express');
-const db = require('./models'); // Sequelize models
+const db = require('./models');
 const cors = require('cors');
-const carRoutes = require('./routes/carRoutes'); // Custom routes for car-related API
-const authRoutes = require('./routes/authRoutes'); // Custom routes for authentication
-const bcrypt = require('bcryptjs'); // For password hashing (if used in auth)
-const axios = require('axios'); // For making API requests (e.g., to OpenAI)
-const csv = require('csv-parser'); // For parsing CSV files
-const fs = require('fs'); // File system to read the CSV file
-require('dotenv').config(); // Load environment variables from .env
-const app = express(); // Express app definition
+const carRoutes = require('./routes/carRoutes');
+const authRoutes = require('./routes/authRoutes');
+const axios = require('axios');
+const csv = require('csv-parser');
+const fs = require('fs');
+require('dotenv').config();
+const app = express();
+const session = require('express-session');
 
 // CORS Configuration
 const corsOptions = {
-  origin: 'http://localhost:5173', // Update this to match your frontend's URL
+  origin: 'http://localhost:5173',
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true,
   optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
-app.use(express.json()); // For parsing application/json bodies
+app.use(express.json());
+app.use(session({
+  secret: 'ewaenterprisewebapplicationsprojectphaseone',
+  resave: false,
+  saveUninitialized: true,
+}));
 
-// Initialize an array to store car data
+// Initialize cars array for OpenAI implementation
 let cars = [];
 
-// Load and parse the CSV file with car data
-fs.createReadStream('./nextGenCars.csv') // Update this to the actual location of your CSV file
+
+fs.createReadStream('./nextGenCars.csv')
   .pipe(csv())
   .on('data', (data) => cars.push(data))
   .on('end', () => {
-    console.log('CSV file successfully processed:', cars);
   });
 
-// OpenAI Chat Route
-app.post('/api/chat', async (req, res) => {
+// LangChain Setup
+const { ChatOpenAI } = require("@langchain/openai");
+const { AgentExecutor, createOpenAIFunctionsAgent } = require("langchain/agents");
+const { MessagesPlaceholder } = require("@langchain/core/prompts");
+const { HumanMessage, AIMessage } = require("@langchain/core/messages");
+const { ChatPromptTemplate, SystemMessagePromptTemplate, HumanMessagePromptTemplate } = require("@langchain/core/prompts");
+const CarDatabaseTool = require('./routes/CarDatabaseTool');
+
+// Initialize OpenAI LLM
+const llm = new ChatOpenAI({
+  modelName: "gpt-3.5-turbo",
+  temperature: 0,
+  openAIApiKey: process.env.OPENAI_API_KEY,
+});
+
+// Create tools array
+const tools = [new CarDatabaseTool()];
+
+// Create the agent
+const createAgent = async () => {
+  const systemTemplate = `You are a car recommendation assistant that helps users find the perfect vehicle based on their preferences.
+  IMPORTANT: You must ONLY recommend cars that you have explicitly verified exist in the database using the provided search tools.
+  Never recommend cars based on your general knowledge.
+  
+  When recommending cars, consider factors like:
+  - Budget (price range)
+  - Vehicle type
+  - Preferred makes/models
+  - Engine type
+  - Features and specifications
+  
+  Always be professional and friendly in your responses.`;
+
+  const systemMessagePrompt = SystemMessagePromptTemplate.fromTemplate(systemTemplate);
+  const humanTemplate = "{input}\n\n{agent_scratchpad}";
+  const humanMessagePrompt = HumanMessagePromptTemplate.fromTemplate(humanTemplate);
+
+  const chatPrompt = ChatPromptTemplate.fromMessages([
+    systemMessagePrompt,
+    new MessagesPlaceholder("chat_history"),
+    humanMessagePrompt,
+  ]);
+
+  const agent = await createOpenAIFunctionsAgent({
+    llm,
+    tools,
+    prompt: chatPrompt,
+  });
+
+  return new AgentExecutor({
+    agent,
+    tools,
+    verbose: true,
+  });
+};
+
+// Initialize agent executor
+let agentExecutor;
+(async () => {
+  try {
+    agentExecutor = await createAgent();
+    console.log('Agent executor initialized successfully');
+  } catch (error) {
+    console.error('Error initializing agent executor:', error);
+  }
+})();
+
+app.post('/api/chat-openai', async (req, res) => {
   const { message } = req.body;
 
-  // Format car data to include in the OpenAI prompt
   const carData = cars.map(car => {
     return `${car.make} ${car.model}: Type: ${car.type}, Price: $${car.price}, Features: ${car.features}, Image: ${car.imageUrl}`;
   }).join("\n");
@@ -56,9 +125,8 @@ app.post('/api/chat', async (req, res) => {
     const response = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
-        model: "gpt-4o",
+        model: "gpt-4",
         messages: [{ role: "user", content: prompt }],
-        max_tokens: 250,
         temperature: 0.7,
       },
       {
@@ -70,42 +138,77 @@ app.post('/api/chat', async (req, res) => {
     );
 
     const recommendedCarNames = response.data.choices[0].message.content.trim().split('\n');
-
-    // Adjust this logic to handle multiple recommendations
     const recommendedCars = cars.filter(car => 
       recommendedCarNames.some(name => 
-        name.toLowerCase().includes(car.make.toLowerCase()) && name.toLowerCase().includes(car.model.toLowerCase())
+        name.toLowerCase().includes(car.make.toLowerCase()) && 
+        name.toLowerCase().includes(car.model.toLowerCase())
       )
     );
 
-    if (recommendedCars.length > 0) {
-      const botMessages = recommendedCars.map(car => ({
-        id: car.id,
-        make: car.make,
-        model: car.model,
-        type: car.type,
-        price: car.price,
-        features: car.features,
-        imageUrl: car.imageUrl,
-      }));
+    const botMessages = recommendedCars.map(car => ({
+      id: car.id,
+      make: car.make,
+      model: car.model,
+      type: car.type,
+      price: car.price,
+      features: car.features,
+      imageUrl: car.imageUrl,
+    }));
 
-      res.json({ reply: botMessages });
-    } else {
-      res.json({ reply: [] });
-    }
+    console.log(botMessages);
+
+    res.json({ reply: botMessages });
   } catch (error) {
-    console.error("Error processing chat response:", error);
+    console.error("Error processing OpenAI chat response:", error);
     res.status(500).json({ error: "Failed to generate recommendations" });
   }
 });
 
+app.post('/api/chat-langchain', async (req, res) => {
+  const { message } = req.body;
+
+  if (!req.session.chatHistory) {
+    req.session.chatHistory = [];
+  }
+
+  try {
+    if (!agentExecutor) {
+      throw new Error('Agent executor not initialized');
+    }
+
+    const formattedHistory = req.session.chatHistory.map(msg => 
+      msg.role === 'user' 
+        ? new HumanMessage(msg.content)
+        : new AIMessage(msg.content)
+    );
+
+    const result = await agentExecutor.invoke({
+      input: message,
+      chat_history: formattedHistory,
+    });
+
+    req.session.chatHistory.push(
+      { role: 'user', content: message },
+      { role: 'assistant', content: result.output }
+    );
+
+    console.log(result.output);
+    res.json({ status: 'processed' });
+  } catch (error) {
+    console.error("Error processing LangChain chat response:", error);
+    res.status(500).json({ 
+      error: "Failed to process LangChain request",
+      details: error.message 
+    });
+  }
+});
 
 // Routes for cars and authentication
-app.use('/api', carRoutes); // Car-related routes
-app.use('/auth', authRoutes); // Authentication-related routes
+app.use('/api', carRoutes);
+app.use('/auth', authRoutes);
 
-// Database Sync
-db.sequelize.sync({ force: false }) // Set force: false to avoid dropping tables in production
+// Database Sync and Server Start
+db.sequelize.sync({ force: false })
   .then(() => {
     console.log('Database synced');
   })
@@ -113,7 +216,6 @@ db.sequelize.sync({ force: false }) // Set force: false to avoid dropping tables
     console.error('Unable to sync database:', err);
   });
 
-// Start the server with basic error handling
 const PORT = 3000;
 app.listen(PORT, (err) => {
   if (err) {

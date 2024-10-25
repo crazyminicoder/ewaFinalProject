@@ -72,10 +72,13 @@ const submitQuery = async (query: string) => {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/chat', { message: query });
+      const [openAIResponse, langChainResponse] = await Promise.all([
+        axios.post('http://localhost:3000/api/chat-openai', { message: query }),
+        axios.post('http://localhost:3000/api/chat-langchain', { message: query })
+      ]);
 
-      if (Array.isArray(response.data.reply)) {
-        const botMessages = response.data.reply.map((car: any) => ({
+      if (Array.isArray(openAIResponse.data.reply)) {
+        const botMessages = openAIResponse.data.reply.map((car: any) => ({
           user: false,
           message: `
             <strong>${car.make} ${car.model}</strong><br/>
