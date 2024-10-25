@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Banner from '../assets/Banner2.jpg';
@@ -170,7 +170,15 @@ const Register: React.FC = () => {
             Register
           </button>
         </form>
+        <p className="mt-4 text-gray-400">
+          Already have an account?{' '}
+          <Link to="/login" className="text-red-500 hover:text-red-700">
+            Login
+          </Link>
+        </p>
       </div>
+
+      
 
       <div className="hidden md:flex w-1/2">
         <img
