@@ -14,6 +14,11 @@ Order.init({
   totalPrice: DataTypes.FLOAT,
   customerDetails: DataTypes.JSON, // Added to store customer details as JSON
   paymentDetails: DataTypes.JSON, // Added to store payment details as JSON
+  fraudAnalysis: DataTypes.JSON,
+  status: {
+    type: DataTypes.STRING,
+    defaultValue: 'pending',
+  },
 }, {
   sequelize,
   modelName: 'Order',

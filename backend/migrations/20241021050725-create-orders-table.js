@@ -2,7 +2,7 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    await queryInterface.createTable('orders', {
+    await queryInterface.createTable('Orders', {
       id: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
@@ -12,13 +12,13 @@ module.exports = {
       userId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'users', key: 'id' },
+        references: { model: 'Users', key: 'id' },
         onDelete: 'CASCADE',
       },
       carId: {
         type: Sequelize.INTEGER,
         allowNull: false,
-        references: { model: 'cars', key: 'id' },
+        references: { model: 'Cars', key: 'id' },
         onDelete: 'CASCADE',
       },
       items: {
@@ -42,20 +42,24 @@ module.exports = {
         type: Sequelize.JSON,
         allowNull: false,
       },
+      fraudAnalysis: {
+        type: Sequelize.JSON,
+        allowNull: true,
+      },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
       updatedAt: {
         type: Sequelize.DATE,
         allowNull: false,
-        defaultValue: Sequelize.NOW,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP'),
       },
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    await queryInterface.dropTable('orders');
+    await queryInterface.dropTable('Orders');
   },
 };

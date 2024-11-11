@@ -15,6 +15,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { Icon } from '@iconify/react';
 import { useTheme } from '@/hooks/use-theme';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 // EmptyCartState Component
 const EmptyCartState = ({ onStartExploring }: { onStartExploring: () => void }) => {
@@ -155,14 +157,14 @@ export default function CartPage(): JSX.Element {
 
     const handleCheckout = async () => {
         if (cartItems.length === 0) {
-            alert("Your cart is empty.");
+            toast.error("Your cart is empty.");
             return;
         }
     
         // Validate customer details
         for (const [key, value] of Object.entries(customerDetails)) {
             if (!value) {
-                alert(`Please fill in your ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+                toast.warning(`Please fill in your ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
                 return;
             }
         }
@@ -170,7 +172,7 @@ export default function CartPage(): JSX.Element {
         // Validate payment details
         for (const [key, value] of Object.entries(paymentDetails)) {
             if (!value) {
-                alert(`Please fill in the ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
+                toast.warning(`Please fill in the ${key.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
                 return;
             }
         }
@@ -207,23 +209,46 @@ export default function CartPage(): JSX.Element {
             const data = await response.json();
     
             if (response.ok) {
-                alert('Order placed successfully!');
+                await new Promise((resolve) => {
+                    toast.success('Order placed successfully!', {
+                        onClose: resolve,
+                        autoClose: 2000
+                    });
+                });
                 localStorage.removeItem("cart");
                 setCartItems([]);
-                setShowEmptyState(true);
-                navigate('/');
+                setTimeout(() => {
+                    setShowEmptyState(true);
+                    navigate('/');
+                }, 100);
             } else {
-                alert(data.message || 'Failed to place the order.');
+                toast.error(data.message || 'Failed to place the order.');
             }
         } catch (error) {
             console.error('Error during checkout:', error);
-            alert('An error occurred while placing the order.');
+            toast.error('An error occurred while placing the order.');
         }
     };
     
     
     if (showEmptyState) {
-        return <EmptyCartState onStartExploring={handleStartExploring} />;
+        return (
+            <>
+                <ToastContainer
+                    position="bottom-left"
+                    autoClose={2000}
+                    hideProgressBar={false}
+                    newestOnTop
+                    closeOnClick
+                    rtl={false}
+                    pauseOnFocusLoss
+                    draggable
+                    pauseOnHover
+                    theme="colored"
+                />
+                <EmptyCartState onStartExploring={handleStartExploring} />
+            </>
+        );
     }
 
     const subtotal = calculateSubtotal();
@@ -232,6 +257,18 @@ export default function CartPage(): JSX.Element {
 
     return (
         <div className="container mx-auto px-4 py-8">
+            <ToastContainer
+                position="bottom-left"
+                autoClose={3000}
+                hideProgressBar={false}
+                newestOnTop
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="colored"
+            />
             <div className="flex items-center justify-between mb-4">
                 <h1 className="text-2xl font-semibold">Your Cart</h1>
                 <Button variant="bordered" onClick={handleGoBack} className="ml-4">

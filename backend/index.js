@@ -3,6 +3,7 @@ const db = require('./models');
 const cors = require('cors');
 const carRoutes = require('./routes/carRoutes');
 const authRoutes = require('./routes/authRoutes');
+const fraudRoutes = require('./routes/fraudRoutes');
 const axios = require('axios');
 const csv = require('csv-parser');
 const fs = require('fs');
@@ -25,8 +26,8 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
 }));
+app.use('/api/fraud', fraudRoutes);
 
-// Initialize cars array for OpenAI implementation
 let cars = [];
 
 
@@ -46,7 +47,7 @@ const CarDatabaseTool = require('./routes/CarDatabaseTool');
 
 // Initialize OpenAI LLM
 const llm = new ChatOpenAI({
-  modelName: "gpt-3.5-turbo",
+  modelName: "gpt-4o-mini",
   temperature: 0,
   openAIApiKey: process.env.OPENAI_API_KEY,
 });
