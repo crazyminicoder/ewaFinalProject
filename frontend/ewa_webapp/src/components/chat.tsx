@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Button, Tooltip, Chip } from '@nextui-org/react';
+import { Button, Tooltip, Chip, Input } from '@nextui-org/react';
 import { Icon } from '@iconify/react';
 import axios from 'axios';
 import PromptInput from './prompt-input';
@@ -16,17 +16,23 @@ type ChatMessage = {
   imageUrl?: string | null;
   carDetails?: any;
   fraudAnalysis?: {
-    action: 'REFUND' | 'DECLINE' | 'ESCALATE';
+    fraudRisk: 'LOW' | 'MEDIUM' | 'HIGH';
     confidence: number;
-    details: string;
-    fraudIndicators?: {
-      unusualAmount: boolean;
-      mismatchedDetails: boolean;
-      suspiciousLocation: boolean;
-      knownFraudPattern: boolean;
-    };
+    indicators: string[];
+    action: 'DECLINE' | 'ESCALATE' | 'REFUND';
+    explanation: string;
+    userAdvice: string;
   };
   type?: 'car' | 'fraud';
+};
+
+type OrderVerification = {
+  exists: boolean;
+  order?: {
+    id: string;
+    status: string;
+    totalPrice: number;
+  };
 };
 
 export default function Chat({ selectedCarBrand }: ChatProps) {
@@ -39,32 +45,43 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [mode, setMode] = useState<'car' | 'fraud'>('car');
+  const [orderId, setOrderId] = useState<string>('');
+  const [orderVerified, setOrderVerified] = useState<boolean>(false);
+  const [currentOrder, setCurrentOrder] = useState<OrderVerification['order']>();
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState<boolean>(false);
   const initialMessageAdded = useRef(false);
-  const [cart, setCart] = useState<any[]>([]);
 
-  const handleAddToCart = (car: any) => {
-    let cart = JSON.parse(localStorage.getItem('cart') || '[]');
-    const carToAdd = {
-      id: car.id,
-      title: `${car.make} ${car.model}`,
-      img: car.imageUrl,
-      price: car.price,
-      description: car.features || 'No description available',
-      trim: car.type || 'N/A',
-    };
-    cart.push(carToAdd);
-    localStorage.setItem('cart', JSON.stringify(cart));
-
-    setChatHistory((prev) => [
-      ...prev,
-      { user: false, message: `${car.make} ${car.model} has been added to your cart.`, type: 'car' },
-    ]);
-
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+  const verifyOrder = async (id: string) => {
+    try {
+      const response = await axios.get(`http://localhost:3000/api/fraud/verify-order/${id}`);
+      const verification: OrderVerification = response.data;
+      
+      if (verification.exists && verification.order) {
+        setOrderVerified(true);
+        setCurrentOrder(verification.order);
+        setChatHistory(prev => [...prev, {
+          user: false,
+          message: `Order #${id} verified. Total price: $${verification.order?.totalPrice}. Current status: ${verification.order?.status}. You can now proceed with your fraud report.`,
+          type: 'fraud'
+        }]);
+      } else {
+        setChatHistory(prev => [...prev, {
+          user: false,
+          message: `Order #${id} not found. Please check the order ID and try again.`,
+          type: 'fraud'
+        }]);
+      }
+      return verification.exists;
+    } catch (error) {
+      console.error('Error verifying order:', error);
+      setChatHistory(prev => [...prev, {
+        user: false,
+        message: 'Error verifying order. Please try again.',
+        type: 'fraud'
+      }]);
+      return false;
     }
   };
 
@@ -91,17 +108,55 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
         setImagePreviewUrl(URL.createObjectURL(file));
         setImageBase64(base64String);
         setMode('fraud');
+        
+        if (!orderVerified) {
+          setChatHistory(prev => [...prev, {
+            user: false,
+            message: "Please provide the order ID to proceed with the fraud report.",
+            type: 'fraud'
+          }]);
+        }
       } catch (error) {
         console.error('Error converting image to base64:', error);
       }
     }
   };
 
+  const handleOrderIdSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (orderId.trim()) {
+      setChatHistory(prev => [...prev, {
+        user: true,
+        message: `Verifying Order ID: ${orderId}`,
+        type: 'fraud'
+      }]);
+      
+      const isValid = await verifyOrder(orderId);
+      if (!isValid) {
+        setOrderId('');
+      }
+    }
+  };
+
   const submitFraudReport = async (query: string) => {
+    if (!orderVerified || !currentOrder) {
+      setChatHistory(prev => [...prev, {
+        user: false,
+        message: "Please verify an order ID first before submitting a fraud report.",
+        type: 'fraud'
+      }]);
+      return;
+    }
+
     const payload = {
+      orderId: currentOrder.id,
       message: query,
       imageData: imageBase64,
-      transactionDetails: JSON.parse(localStorage.getItem('currentTransaction') || '{}')
+      transactionDetails: {
+        orderId: currentOrder.id,
+        totalPrice: currentOrder.totalPrice,
+        status: currentOrder.status
+      }
     };
 
     const userMessage: ChatMessage = {
@@ -111,37 +166,45 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
       type: 'fraud'
     };
 
-    setChatHistory((prev) => [...prev, userMessage]);
+    setChatHistory(prev => [...prev, userMessage]);
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:3000/api/fraud/report', payload, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await axios.post('http://localhost:3000/api/fraud/report', payload);
+      const { analysis, status } = response.data;
 
-      const analysis = response.data.analysis;
+      if (status === 'error' || !analysis) {
+        throw new Error(response.data.message || 'Error processing fraud report');
+      }
+      
       const analysisMessage: ChatMessage = {
         user: false,
         message: `
           <div class="fraud-analysis">
             <h4>Fraud Analysis Result</h4>
-            <p><strong>Action:</strong> ${analysis.action}</p>
-            <p><strong>Confidence:</strong> ${analysis.confidence.toFixed(2)}%</p>
-            <p><strong>Details:</strong> ${analysis.details}</p>
-          </div>
-        `,
+            <p><strong>Risk Level:</strong> ${analysis.fraudRisk}</p>
+            <p><strong>Confidence:</strong> ${analysis.confidence}%</p>
+            <p><strong>Recommended Action:</strong> ${analysis.action}</p>
+            <p><strong>Explanation:</strong> ${analysis.explanation}</p>
+           `,
         fraudAnalysis: analysis,
         type: 'fraud'
       };
 
       setChatHistory(prev => [...prev, analysisMessage]);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error submitting fraud report:', error);
+      
+      // Type guard for axios error
+      const errorMessage = axios.isAxiosError(error)
+        ? error.response?.data?.message || error.message
+        : error instanceof Error
+          ? error.message
+          : 'An unknown error occurred';
+
       setChatHistory(prev => [...prev, {
         user: false,
-        message: 'Error processing fraud report. Please try again.',
+        message: `Error processing fraud report: ${errorMessage}`,
         type: 'fraud'
       }]);
     } finally {
@@ -154,14 +217,11 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
 
   const submitCarQuery = async (query: string) => {
     const userMessage: ChatMessage = { user: true, message: query, type: 'car' };
-    setChatHistory((prev) => [...prev, userMessage]);
+    setChatHistory(prev => [...prev, userMessage]);
     setLoading(true);
 
     try {
-      const [openAIResponse] = await Promise.all([
-        axios.post('http://localhost:3000/api/chat-openai', { message: query }),
-        axios.post('http://localhost:3000/api/chat-langchain', { message: query })
-      ]);
+      const openAIResponse = await axios.post('http://localhost:3000/api/chat-openai', { message: query });
 
       if (Array.isArray(openAIResponse.data.reply)) {
         const botMessages = openAIResponse.data.reply.map((car: any) => ({
@@ -177,11 +237,11 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
           type: 'car'
         }));
 
-        setChatHistory((prev) => [...prev, ...botMessages]);
+        setChatHistory(prev => [...prev, ...botMessages]);
       }
     } catch (error) {
       console.error('Error fetching car recommendations:', error);
-      setChatHistory((prev) => [...prev, {
+      setChatHistory(prev => [...prev, {
         user: false,
         message: 'Error fetching recommendations. Please try again.',
         type: 'car'
@@ -203,18 +263,19 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      onSubmitPrompt(e as unknown as React.FormEvent);
-    }
-  };
-
   useEffect(() => {
     if (!isUserScrolling && chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatHistory]);
+
+  useEffect(() => {
+    if (selectedCarBrand && !initialMessageAdded.current) {
+      const initialMessage = `Hey, I can help you with car recommendations and fraud reporting. What would you like to do?`;
+      setChatHistory([{ user: false, message: initialMessage, type: 'car' }]);
+      initialMessageAdded.current = true;
+    }
+  }, [selectedCarBrand]);
 
   const handleScroll = () => {
     if (chatContainerRef.current) {
@@ -226,25 +287,12 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
     }
   };
 
-  useEffect(() => {
-    if (selectedCarBrand && !initialMessageAdded.current) {
-      const initialMessage = `Hey, I can help you with car recommendations and fraud reporting. What would you like to do?`;
-      setChatHistory((prev) => [{ user: false, message: initialMessage }, ...prev]);
-      initialMessageAdded.current = true;
-    }
-  }, [selectedCarBrand]);
-
   return (
-    <div 
-      className={`fixed top-16 right-0 flex flex-col gap-4 z-20 justify-between p-5 w-[370px] 
-        ${isDark 
-          ? 'bg-content1/80 text-content1-foreground' 
-          : 'bg-background/80 text-foreground'
-        } 
-        backdrop-blur-md h-[calc(100vh-4rem)] rounded-lg
-        border-1 ${isDark ? 'border-content2/20' : 'border-default-200/50'}
-        transition-colors duration-200`}
-    >
+    <div className={`fixed top-16 right-0 flex flex-col gap-4 z-20 justify-between p-5 w-[370px] 
+      ${isDark ? 'bg-content1/80 text-content1-foreground' : 'bg-background/80 text-foreground'}
+      backdrop-blur-md h-[calc(100vh-4rem)] rounded-lg
+      border-1 ${isDark ? 'border-content2/20' : 'border-default-200/50'}
+      transition-colors duration-200`}>
       <div className="flex justify-between items-center mb-2">
         <div className="flex gap-2">
           <Button
@@ -259,12 +307,41 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
             size="sm"
             color={mode === 'fraud' ? 'primary' : 'default'}
             variant={mode === 'fraud' ? 'solid' : 'flat'}
-            onClick={() => setMode('fraud')}
+            onClick={() => {
+              setMode('fraud');
+              if (!orderVerified) {
+                setChatHistory(prev => [...prev, {
+                  user: false,
+                  message: "Please provide the order ID to proceed with fraud reporting.",
+                  type: 'fraud'
+                }]);
+              }
+            }}
           >
             Fraud Report
           </Button>
         </div>
       </div>
+
+      {mode === 'fraud' && !orderVerified && (
+        <form onSubmit={handleOrderIdSubmit} className="flex gap-2 mb-4">
+          <Input
+            size="sm"
+            placeholder="Enter Order ID"
+            value={orderId}
+            onChange={(e) => setOrderId(e.target.value)}
+            className="flex-1"
+          />
+          <Button
+            size="sm"
+            color="primary"
+            type="submit"
+            isDisabled={!orderId.trim()}
+          >
+            Verify
+          </Button>
+        </form>
+      )}
 
       <div
         ref={chatContainerRef}
@@ -273,13 +350,10 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
       >
         {chatHistory.map((chat, index) => (
           <div key={index} className={`flex ${chat.user ? 'justify-end' : 'justify-start'}`}>
-            <div 
-              className={`max-w-[85%] flex flex-col items-${chat.user ? 'end' : 'start'} gap-2`}
-            >
+            <div className={`max-w-[85%] flex flex-col items-${chat.user ? 'end' : 'start'} gap-2`}>
               {chat.imageUrl && (
                 <div className={`w-full max-w-[300px] rounded-lg overflow-hidden 
-                  ${isDark ? 'border-content2/20' : 'border-default-200/50'} 
-                  border-1`}>
+                  ${isDark ? 'border-content2/20' : 'border-default-200/50'} border-1`}>
                   <img
                     src={chat.imageUrl}
                     alt={chat.type === 'car' ? "Car" : "Receipt"}
@@ -293,33 +367,20 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
                   ${chat.user
                     ? 'bg-primary text-primary-foreground'
                     : isDark
-                      ? 'bg-red-500 text-white'
-                      : 'bg-primary text-primary-foreground'
+                      ? 'bg-red-500'
+                      : 'bg-default-100 text-default-900'
                   }
                   ${chat.fraudAnalysis ? 'fraud-analysis' : ''}
                   transition-colors duration-200`}
                 dangerouslySetInnerHTML={{ __html: chat.message }}
               />
-              {!chat.user && chat.carDetails && (
-                <Button
-                  className={`w-full 
-                    ${isDark 
-                      ? 'bg-gray-600 hover:bg-gray-500 active:bg-gray-400' 
-                      : 'bg-gray-300 hover:bg-gray-200 active:bg-gray-100'
-                    }
-                    text-white transition-colors duration-200`}
-                  variant="flat"
-                  onClick={() => handleAddToCart(chat.carDetails)}
-                >
-                  Add to Cart
-                </Button>
-              )}
               {!chat.user && chat.fraudAnalysis && (
                 <Chip
                   color={
                     chat.fraudAnalysis.action === 'REFUND' ? 'success' :
                     chat.fraudAnalysis.action === 'DECLINE' ? 'danger' : 'warning'
                   }
+                  className="ml-2"
                 >
                   {chat.fraudAnalysis.action}
                 </Chip>
@@ -330,10 +391,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
         {loading && (
           <div className="flex justify-start">
             <div className={`p-2 rounded-md 
-              ${isDark 
-                ? 'bg-content2 text-content2-foreground' 
-                : 'bg-default-100 text-default-900'
-              }
+              ${isDark ? 'bg-content2 text-content2-foreground' : 'bg-default-100 text-default-900'}
               transition-colors duration-200`}>
               <span className="animate-pulse">•</span>
               <span className="animate-pulse">•</span>
@@ -372,6 +430,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
           </div>
         )}
         <PromptInput
+          isDisabled={mode === 'fraud' && !orderVerified}
           classNames={{
             inputWrapper: '!bg-transparent shadow-none',
             innerWrapper: 'relative',
@@ -389,6 +448,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
                 onChange={handleImageSelect}
                 accept="image/*"
                 className="hidden"
+                disabled={mode === 'fraud' && !orderVerified}
               />
               <Tooltip showArrow content="Attach image">
                 <Button
@@ -398,6 +458,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
                   size="sm"
                   variant="flat"
                   onClick={() => fileInputRef.current?.click()}
+                  isDisabled={mode === 'fraud' && !orderVerified}
                 >
                   <Icon
                     className="text-default-500"
@@ -415,7 +476,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
                       : 'bg-primary hover:bg-primary-500 active:bg-primary-600'
                     }
                     transition-colors duration-200`}
-                  isDisabled={!prompt}
+                  isDisabled={!prompt || (mode === 'fraud' && !orderVerified)}
                   radius="lg"
                   size="sm"
                   variant="solid"
@@ -433,10 +494,15 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
           minRows={3}
           radius="lg"
           value={prompt}
-          placeholder={selectedImage ? "Describe the fraudulent transaction..." : "Type your query here..."}
+          placeholder={
+            mode === 'fraud' 
+              ? orderVerified 
+                ? "Describe the fraudulent transaction..." 
+                : "Please verify order ID first"
+              : "Type your car query here..."
+          }
           variant="bordered"
           onValueChange={setPrompt}
-          onKeyDown={handleKeyDown}
         />
       </form>
     </div>

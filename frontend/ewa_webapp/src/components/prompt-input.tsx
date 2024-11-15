@@ -12,13 +12,14 @@ type PromptInputProps = {
   radius?: 'sm' | 'md' | 'lg';
   variant?: 'bordered' | 'flat';
   value?: string;
+  isDisabled?: boolean;
   onValueChange?: (value: string) => void;
   onKeyDown?: React.KeyboardEventHandler; // Use the generic type
   placeholder?: string;
 };
 
 const PromptInput = React.forwardRef<HTMLTextAreaElement, PromptInputProps>(
-  ({ classNames = {}, ...props }, ref) => {
+  ({ classNames = {},isDisabled, ...props }, ref) => {
     return (
       <Textarea
         ref={ref}
