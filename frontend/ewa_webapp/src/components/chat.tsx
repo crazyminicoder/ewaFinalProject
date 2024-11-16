@@ -4,6 +4,7 @@ import { Icon } from '@iconify/react';
 import axios from 'axios';
 import PromptInput from './prompt-input';
 import { useTheme } from '@/hooks/use-theme';
+import Compressor from 'compressorjs';
 
 type ChatProps = {
   selectedCarBrand: string;
@@ -23,7 +24,13 @@ type ChatMessage = {
     explanation: string;
     userAdvice: string;
   };
-  type?: 'car' | 'fraud';
+  orderStatus?: {
+    orderId: string;
+    currentStatus: string;
+    estimatedDelivery: string;
+    details: string;
+  };
+  type?: 'car' | 'fraud' | 'status';
 };
 
 type OrderVerification = {
@@ -44,7 +51,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
-  const [mode, setMode] = useState<'car' | 'fraud'>('car');
+  const [mode, setMode] = useState<'car' | 'fraud' | 'status'>('car');
   const [orderId, setOrderId] = useState<string>('');
   const [orderVerified, setOrderVerified] = useState<boolean>(false);
   const [currentOrder, setCurrentOrder] = useState<OrderVerification['order']>();
@@ -52,6 +59,14 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUserScrolling, setIsUserScrolling] = useState<boolean>(false);
   const initialMessageAdded = useRef(false);
+
+  const placeholderText = mode === 'car'
+  ? 'Type your car query here...'
+  : mode === 'fraud'
+    ? orderVerified 
+      ? 'Describe the fraudulent transaction...' 
+      : 'Please verify order ID first'
+    : 'Enter your order or shipping inquiry...';
 
   const verifyOrder = async (id: string) => {
     try {
@@ -107,13 +122,19 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
         setSelectedImage(file);
         setImagePreviewUrl(URL.createObjectURL(file));
         setImageBase64(base64String);
-        setMode('fraud');
+        setMode(mode);
         
         if (!orderVerified) {
+          let msg = ''
+          if(mode === 'fraud') {
+            msg = 'fraud report.'
+          } else if(mode === 'status'){
+            msg = 'order status.'
+          }
           setChatHistory(prev => [...prev, {
             user: false,
-            message: "Please provide the order ID to proceed with the fraud report.",
-            type: 'fraud'
+            message: `Please provide the order ID to proceed with the` + msg,
+            type: mode
           }]);
         }
       } catch (error) {
@@ -215,6 +236,214 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
     }
   };
 
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve, reject) => {
+      new Compressor(file, {
+        success: (compressedResult) => resolve(compressedResult as File),
+        error: (error) => reject(error),
+      });
+    });
+  };
+
+  const processOpenAIResponse = (data: any) => {
+    if (data.choices && data.choices.length > 0 && data.choices[0].message.content) {
+      const content = data.choices[0].message.content;
+      console.log("API content =", content);
+  
+      // Normalize the content to handle case sensitivity and extra spaces
+      if (content.includes('Repair Needed')) {
+        return {
+          decision: 'Repair Needed',
+          explanation: 'The damage is minor, such as scratches or dents, which can be resolved through repair.'
+        };
+      } else if (content.includes('Replace Needed')) {
+        return {
+          decision: 'Replace Needed',
+          explanation: 'The damage is significant, such as broken parts or severe structural issues, requiring a replacement.'
+        };
+      } else if (content.includes('Human Agent')) {
+        return {
+          decision: 'Escalate to Human Agent',
+          explanation: 'The damage assessment is unclear or requires further investigation by a human agent.'
+        };
+      }
+    }
+    
+    return {
+      decision: 'Unknown status',
+      explanation: 'The analysis could not determine a clear decision based on the provided data.'
+    };
+  };
+  
+
+  const submitOrderStatusQuery = async (query: string) => {
+    console.log("submit order status")
+    
+    if (!orderVerified || !currentOrder) {
+      setChatHistory(prev => [...prev, {
+        user: false,
+        message: "Please verify an order ID first before submitting a defect report.",
+        type: 'status'
+      }]);
+      return;
+    }
+
+    const payload = {
+      orderId: currentOrder.id,
+      message: query,
+      imageData: selectedImage,
+      transactionDetails: {
+        orderId: currentOrder.id,
+        totalPrice: currentOrder.totalPrice,
+        status: currentOrder.status
+      }
+    };
+
+    const userMessage: ChatMessage = {
+      user: true,
+      message: query,
+      imageUrl: imagePreviewUrl,
+      type: 'status'
+    };
+
+    setChatHistory(prev => [...prev, userMessage]);
+    setLoading(true);
+  
+    try {
+
+      if (selectedImage) {
+        try {
+          const compressedImage = await compressImage(selectedImage);
+          const reader = new FileReader();
+      
+          const imageFormat = "jpeg";
+          const imageFile = {
+            mimetype: imageFormat === "jpeg" ? "image/jpeg" : "image/png",
+          };
+      
+          reader.onloadend = async () => {
+            const base64Image = reader.result as string;
+      
+            if (base64Image) {
+              const base64Data = base64Image.split(",")[1];
+      
+              const optimizedContent = [
+                {
+                  type: "text",
+                  text:`Classify this car image as "Repair Needed", "Replace Needed", or "Escalate to Human Agent".
+
+                  Analyze the car image and determine if it requires:
+
+                  Repair Needed,
+                  Replace Needed, or
+                  Escalate to Human Agent.
+
+                  Criteria:
+
+                  If the damage is minor (e.g., scratches, dents), classify it as Repair Needed.
+                  If the damage is significant (e.g., broken parts, severe structural damage), classify it as Replace Needed.
+                  If the damage assessment is unclear or requires further investigation, escalate it to a human agent.
+                  Do not include "Repair Needed" or "Replace Needed" if it is an escalate.
+
+                  Please analyze the image data provided below and apply these criteria for accurate classification.
+                  Ensure the response explicitly uses the classification terms: "Repair Needed", "Replace Needed", or "Escalate to Human Agent".`,
+                },
+                {
+                  type: "image_url",
+                  image_url: {
+                    url: `data:${imageFile.mimetype};base64,${base64Data}`,
+                  },
+                },
+              ];
+
+              const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+      
+              try {
+                // Send the image and request to OpenAI's GPT model
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${apiKey}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: "gpt-4o-2024-08-06",
+                    messages: [
+                      {
+                        role: "user",
+                        content: optimizedContent,
+                      },
+                    ],
+                  }),
+                });
+      
+                if (!response.ok) {
+                  const errorData = await response.json();
+                  console.error("OpenAI API error:", errorData);
+                  throw new Error(`OpenAI API error: ${errorData.error.message}`);
+                }
+      
+                const openAIResponse = await response.json();
+                const { decision, explanation } = processOpenAIResponse(openAIResponse);
+
+                const formData = {
+                  status: decision,
+                  orderId: orderId
+                };
+
+                console.log("formData", formData);
+                const response1 = await axios.post('http://localhost:3000/api/order/status', formData);
+
+                console.log("resposne1.data = ",response1.data)
+
+                const { status, orderDetails  } = response1.data;
+
+      if (status === 'error' || !orderDetails) {
+        throw new Error(response1.data.message || 'Error processing fraud report');
+      }
+      
+      const analysisMessage: ChatMessage = {
+        user: false,
+        message: `
+          <div class="order-status-analysis">
+            <h4>Order Status Analysis Result</h4>
+            <p><strong>Order ID:</strong> ${orderDetails.id}</p>
+            <p><strong>Status:</strong> ${orderDetails.status}</p>
+            <p><strong>Recommended Action:</strong> ${decision}</p>
+            <p><strong>Explanation:</strong> ${explanation}</p>
+        </div>
+           `,
+        type: 'status'
+      };
+
+      setChatHistory(prev => [...prev, analysisMessage]);
+              } catch (error) {
+                console.error("Error communicating with OpenAI API:", error);
+              }
+            }
+          };
+      
+          reader.readAsDataURL(compressedImage);
+        } catch (error) {
+          console.error("Error processing the image:", error);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking order status:', error);
+      setChatHistory((prev) => [...prev, {
+        user: false,
+        message: 'Error retrieving order status. Please try again.',
+        type: 'status'
+      }]);
+    } finally {
+      setLoading(false);
+      setImageBase64(null);
+      setSelectedImage(null);
+      setImagePreviewUrl(null);
+    }
+  };
+  
+
   const submitCarQuery = async (query: string) => {
     const userMessage: ChatMessage = { user: true, message: query, type: 'car' };
     setChatHistory(prev => [...prev, userMessage]);
@@ -256,6 +485,8 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
     if (prompt.trim()) {
       if (mode === 'fraud') {
         await submitFraudReport(prompt);
+      }else if(mode === 'status'){
+        await submitOrderStatusQuery(prompt);
       } else {
         await submitCarQuery(prompt);
       }
@@ -320,10 +551,18 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
           >
             Fraud Report
           </Button>
+          <Button
+            size="sm"
+            color={mode === 'status' ? 'primary' : 'default'}
+            variant={mode === 'status' ? 'solid' : 'flat'}
+            onClick={() => setMode('status')}
+          >
+            Order/Shipping Status
+          </Button>
         </div>
       </div>
 
-      {mode === 'fraud' && !orderVerified && (
+      {(mode === 'fraud' || mode === 'status') && !orderVerified && (
         <form onSubmit={handleOrderIdSubmit} className="flex gap-2 mb-4">
           <Input
             size="sm"
@@ -494,13 +733,7 @@ export default function Chat({ selectedCarBrand }: ChatProps) {
           minRows={3}
           radius="lg"
           value={prompt}
-          placeholder={
-            mode === 'fraud' 
-              ? orderVerified 
-                ? "Describe the fraudulent transaction..." 
-                : "Please verify order ID first"
-              : "Type your car query here..."
-          }
+          placeholder={placeholderText}
           variant="bordered"
           onValueChange={setPrompt}
         />

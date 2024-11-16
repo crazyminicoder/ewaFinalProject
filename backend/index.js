@@ -4,6 +4,7 @@ const cors = require('cors');
 const carRoutes = require('./routes/carRoutes');
 const authRoutes = require('./routes/authRoutes');
 const fraudRoutes = require('./routes/fraudRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 const axios = require('axios');
 const csv = require('csv-parser');
 const fs = require('fs');
@@ -27,6 +28,7 @@ app.use(session({
   saveUninitialized: true,
 }));
 app.use('/api/fraud', fraudRoutes);
+app.use('/api/order', orderRoutes);
 
 let cars = [];
 
